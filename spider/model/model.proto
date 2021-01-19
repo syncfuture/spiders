@@ -1,0 +1,21 @@
+syntax = "proto3";
+
+package report;
+
+option go_package = "github.com/syncfuture/spiders/spider/model";
+
+// ========================================================================================
+// Finance 
+
+message Proxy {
+    // `json:"id,omitempty"`
+    string ID                   = 1;
+    // `json:"scheme,omitempty"`
+    string Scheme               = 2;
+    // `json:"host,omitempty"`
+    string Host                 = 3;
+    // `json:"username,omitempty"`
+    string Username             = 4;
+    // `json:"password,omitempty"`
+    string Password             = 5;
+}
