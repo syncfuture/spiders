@@ -5,7 +5,7 @@ import (
 	"io"
 	"net/http"
 
-	"github.com/syncfuture/go/spool"
+	"github.com/PuerkitoBio/goquery"
 
 	"github.com/syncfuture/spiders/spider/store"
 )
@@ -34,10 +34,9 @@ var (
 type HttpClientSpider struct {
 	client     *http.Client
 	proxyStore store.IProxyStore
-	pool       spool.BufferPool
 }
 
-func (x *HttpClientSpider) Get(url string) (string, error) {
+func (x *HttpClientSpider) GetDocument(url string) (r *goquery.Document, err error) {
 	msg, _ := http.NewRequest("GET", url, nil)
 
 	for k, v := range _headers {
@@ -48,14 +47,12 @@ func (x *HttpClientSpider) Get(url string) (string, error) {
 
 	resp, err := x.client.Do(msg)
 	if err != nil {
-		return "", err
+		return nil, err
 	}
 
 	var bodyReader io.ReadCloser
 
-	buffer := x.pool.GetBuffer()
 	defer func() {
-		x.pool.PutBuffer(buffer)
 		if bodyReader != nil {
 			defer bodyReader.Close()
 		}
@@ -67,7 +64,5 @@ func (x *HttpClientSpider) Get(url string) (string, error) {
 		bodyReader = resp.Body
 	}
 
-	buffer.ReadFrom(bodyReader)
-
-	return buffer.String(), err
+	return goquery.NewDocumentFromReader(bodyReader)
 }
