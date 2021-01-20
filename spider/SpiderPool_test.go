@@ -16,8 +16,8 @@ func TestHttpClientSpider_Get(t *testing.T) {
 		Addrs:    []string{"localhost:6379"},
 		Password: "Famous901",
 	})
-	pool := NewHttpClientSpiderPool(store)
-	spider := pool.GetSpider()
+	pool := NewSpiderPool(store)
+	spider := pool.GetHttpClientSpider()
 	// url := "https://api.ip.sb/ip"
 	// url := "http://ipv4.webshare.io/"
 	// url := "https://www.amazon.com/AMD-Ryzen-5900X-24-Thread-Processor/dp/B08164VTWH"
@@ -26,14 +26,14 @@ func TestHttpClientSpider_Get(t *testing.T) {
 
 	assert.NoError(t, err)
 	assert.NotEmpty(t, doc)
-	// t.Log(doc.Find(".olpOfferPrice").Length())
 	nodes := doc.Find(".olpOfferPrice").Text()
-	// t.Log(doc.Find(".olpOfferPrice"))
-	// t.Log(doc.Text())
-
 	regex := regexp.MustCompile(`\$(\d+[\.\d]+)`)
 
 	matches := regex.FindAllStringSubmatch(nodes, -1)
+	if len(matches) == 0 {
+		t.Log(doc.Html())
+		return
+	}
 	prices := make([]float64, 0, len(matches))
 
 	for _, m := range matches {

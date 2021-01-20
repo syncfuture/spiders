@@ -1,19 +1,41 @@
-package spider
+package httpClient
 
 import (
 	"compress/gzip"
+	"crypto/tls"
 	"io"
 	"net/http"
 
 	"github.com/PuerkitoBio/goquery"
-
-	"github.com/syncfuture/spiders/spider/store"
+	"github.com/syncfuture/spiders/spider/header"
+	"github.com/syncfuture/spiders/spider/model"
 )
 
 type HttpClientSpider struct {
-	client     *http.Client
-	headers    map[string]string
-	proxyStore store.IProxyStore
+	client  *http.Client
+	headers map[string]string
+}
+
+func NewHttpClientSpider(proxy *model.Proxy, headers map[string]string) (r *HttpClientSpider) {
+	if headers == nil {
+		hb := header.NewHeadersBuilder()
+		headers = hb.Headers
+	}
+
+	r = new(HttpClientSpider)
+	r.headers = headers
+	if proxy != nil {
+		r.client = &http.Client{
+			Transport: &http.Transport{
+				Proxy:           proxy.ToProxyURL(),
+				TLSClientConfig: &tls.Config{InsecureSkipVerify: true},
+			},
+		}
+		return
+	}
+
+	r.client = http.DefaultClient
+	return
 }
 
 func (x *HttpClientSpider) GetDocument(url string) (r *goquery.Document, err error) {
