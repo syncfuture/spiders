@@ -12,6 +12,7 @@ import (
 )
 
 type HttpClientSpider struct {
+	proxy   *model.Proxy
 	client  *http.Client
 	headers map[string]string
 }
@@ -25,6 +26,7 @@ func NewHttpClientSpider(proxy *model.Proxy, headers map[string]string) (r *Http
 	r = new(HttpClientSpider)
 	r.headers = headers
 	if proxy != nil {
+		r.proxy = proxy
 		r.client = &http.Client{
 			Transport: &http.Transport{
 				Proxy:           proxy.ToProxyURL(),
@@ -36,6 +38,9 @@ func NewHttpClientSpider(proxy *model.Proxy, headers map[string]string) (r *Http
 
 	r.client = http.DefaultClient
 	return
+}
+func (x *HttpClientSpider) GetProxy() *model.Proxy {
+	return x.proxy
 }
 
 func (x *HttpClientSpider) GetDocument(url string) (r *goquery.Document, err error) {

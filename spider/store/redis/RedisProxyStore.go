@@ -2,9 +2,11 @@ package redis
 
 import (
 	"encoding/json"
+	"errors"
 
 	"github.com/go-redis/redis/v7"
 	"github.com/syncfuture/go/sid"
+	"github.com/syncfuture/go/srand"
 	"github.com/syncfuture/go/sredis"
 	"github.com/syncfuture/spiders/spider/model"
 	"github.com/syncfuture/spiders/spider/store"
@@ -48,6 +50,19 @@ func (x *RedisProxyStore) GetProxy(id string) (r *model.Proxy, err error) {
 	}
 
 	return
+}
+
+func (x *RedisProxyStore) GetRandomProxy() (r *model.Proxy, err error) {
+	proxies, err := x.GetProxies()
+	if err != nil {
+		return nil, err
+	}
+
+	if len(proxies) == 0 {
+		return nil, errors.New("no available proxies")
+	}
+
+	return proxies[srand.IntRange(0, len(proxies)-1)], err
 }
 
 func (x *RedisProxyStore) GetProxies() ([]*model.Proxy, error) {

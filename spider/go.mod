@@ -9,5 +9,5 @@ require (
 	github.com/go-redis/redis/v7 v7.4.0
 	github.com/stretchr/testify v1.7.0
 	github.com/syncfuture/go v1.3.1
-	google.golang.org/protobuf v1.25.0
+	google.golang.org/protobuf v1.25.0 // indirect
 )

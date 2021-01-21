@@ -1,35 +1,32 @@
 package spider
 
 import (
-	"github.com/syncfuture/go/u"
-
 	"github.com/syncfuture/spiders/spider/httpClient"
-	"github.com/syncfuture/spiders/spider/model"
 	"github.com/syncfuture/spiders/spider/store"
 )
 
 type SpiderPool struct {
-	proxies []*model.Proxy
+	ProxyStore store.IProxyStore
 }
 
 func NewSpiderPool(proxyStore store.IProxyStore) *SpiderPool {
-	proxies, err := proxyStore.GetProxies()
-	u.LogFaltal(err)
-
 	return &SpiderPool{
-		proxies: proxies,
+		ProxyStore: proxyStore,
 	}
 }
 
-func (x SpiderPool) GetHttpClientSpider() ISpider {
-	i := randInt(0, len(x.proxies)-1)
-	proxy := x.proxies[i]
-
-	return httpClient.NewHttpClientSpider(proxy, nil)
+func (x SpiderPool) GetHttpClientSpider() (ISpider, error) {
+	proxy, err := x.ProxyStore.GetRandomProxy()
+	if err != nil {
+		return nil, err
+	}
+	return httpClient.NewHttpClientSpider(proxy, nil), err
 }
 
-func (x SpiderPool) GetHttpClientSpiderWithHeaders(headers map[string]string) ISpider {
-	i := randInt(0, len(x.proxies)-1)
-	proxy := x.proxies[i]
-	return httpClient.NewHttpClientSpider(proxy, headers)
+func (x SpiderPool) GetHttpClientSpiderWithHeaders(headers map[string]string) (ISpider, error) {
+	proxy, err := x.ProxyStore.GetRandomProxy()
+	if err != nil {
+		return nil, err
+	}
+	return httpClient.NewHttpClientSpider(proxy, headers), err
 }
