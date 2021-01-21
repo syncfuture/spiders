@@ -64,7 +64,7 @@ func (x *WebShareProxyStore) SaveProxy(proxy *model.Proxy) error {
 	for i, p := range x.proxies {
 		if p.ID == proxy.ID {
 			if proxy.Blocked {
-				log.Debugf("proxy '%s' is been blocked", proxy.Host)
+				log.Debugf("proxy [%s] is been blocked, [%d] proxies left.", proxy.Host, len(x.proxies))
 				x.proxies = append(x.proxies[:i], x.proxies[i+1:]...)
 			} else {
 				x.proxies[i] = proxy
@@ -107,6 +107,7 @@ func (x *WebShareProxyStore) GetProxies() ([]*model.Proxy, error) {
 }
 
 func (x *WebShareProxyStore) getProxiesFromAPI() ([]*model.Proxy, error) {
+	log.Debug("fetching proxies from webshare api...")
 	msg, _ := http.NewRequest("GET", _apiURL, nil)
 	msg.Header.Set("Authorization", "Token "+x.key)
 	resp, err := http.DefaultClient.Do(msg)
@@ -127,7 +128,9 @@ func (x *WebShareProxyStore) getProxiesFromAPI() ([]*model.Proxy, error) {
 
 	if len(rs.Results) == 0 {
 		log.Warn(string(data))
+		return nil, err
 	}
+	log.Debugf("[%d] proxies fetched")
 
 	r := make([]*model.Proxy, 0, len(rs.Results))
 	for _, dto := range rs.Results {
