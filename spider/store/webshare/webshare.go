@@ -130,7 +130,7 @@ func (x *WebShareProxyStore) getProxiesFromAPI() ([]*model.Proxy, error) {
 		log.Warn(string(data))
 		return nil, err
 	}
-	log.Debugf("[%d] proxies fetched")
+	log.Debugf("[%d] proxies fetched", len(rs.Results))
 
 	r := make([]*model.Proxy, 0, len(rs.Results))
 	for _, dto := range rs.Results {
@@ -138,6 +138,11 @@ func (x *WebShareProxyStore) getProxiesFromAPI() ([]*model.Proxy, error) {
 	}
 
 	return r, nil
+}
+func (x *WebShareProxyStore) Clear() error {
+	x.proxies = nil
+
+	return nil
 }
 
 func (x *WebShareProxyDTO) ToProxy() (r *model.Proxy) {

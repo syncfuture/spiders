@@ -82,3 +82,7 @@ func (x *RedisProxyStore) GetProxies() ([]*model.Proxy, error) {
 	}
 	return r, err
 }
+
+func (x *RedisProxyStore) Clear() error {
+	return x.client.Del(x.key).Err()
+}

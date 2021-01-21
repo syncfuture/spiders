@@ -7,4 +7,5 @@ type IProxyStore interface {
 	GetProxy(id string) (*model.Proxy, error)
 	GetRandomProxy() (*model.Proxy, error)
 	GetProxies() ([]*model.Proxy, error)
+	Clear() error
 }
