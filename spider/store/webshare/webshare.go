@@ -141,6 +141,7 @@ func (x *WebShareProxyStore) getProxiesFromAPI() ([]*model.Proxy, error) {
 }
 func (x *WebShareProxyStore) Clear() error {
 	x.proxies = nil
+	log.Debug("proxies cleared")
 
 	return nil
 }
