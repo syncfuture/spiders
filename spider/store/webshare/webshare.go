@@ -95,7 +95,8 @@ func (x *WebShareProxyStore) GetRandomProxy() (r *model.Proxy, err error) {
 		return nil, errors.New("no available proxies")
 	}
 
-	return proxies[srand.IntRange(0, len(proxies)-1)], err
+	randomIndex := srand.IntRange(0, len(proxies)-1)
+	return proxies[randomIndex], err
 }
 
 func (x *WebShareProxyStore) GetProxies() ([]*model.Proxy, error) {

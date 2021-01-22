@@ -13,13 +13,21 @@ import (
 	"github.com/syncfuture/spiders/spider/store/webshare"
 )
 
+var (
+	_store = webshare.NewWebShareProxyStore("be09d781115fe3491743fa205ea786852513f474")
+)
+
+func init() {
+
+}
+
 func TestHttpClientSpider_Get(t *testing.T) {
 	// store := redis.NewRedisProxyStore("ams:Proxies", &sredis.RedisConfig{
 	// 	Addrs:    []string{"localhost:6379"},
 	// 	Password: "Famous901",
 	// })
-	store := webshare.NewWebShareProxyStore("be09d781115fe3491743fa205ea786852513f474")
-	pool := NewSpiderPool(store)
+	// store := webshare.NewWebShareProxyStore("be09d781115fe3491743fa205ea786852513f474")
+	pool := NewSpiderPool(_store)
 
 	for i := 0; i < 100; i++ {
 		check(pool)
@@ -76,4 +84,16 @@ func check(pool *SpiderPool) {
 	})
 
 	log.Info(prices)
+}
+
+func TestGetRandom(t *testing.T) {
+	pool := NewSpiderPool(_store)
+	a, _ := pool.ProxyStore.GetRandomProxy()
+	t.Log(a.Host)
+
+	b, _ := pool.ProxyStore.GetRandomProxy()
+	t.Log(b.Host)
+
+	c, _ := pool.ProxyStore.GetRandomProxy()
+	t.Log(c.Host)
 }
