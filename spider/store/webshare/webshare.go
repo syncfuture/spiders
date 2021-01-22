@@ -48,8 +48,8 @@ type (
 	}
 
 	PortsDTO struct {
-		Http   string `json:"http,omitempty"`
-		Socks5 string `json:"socks5,omitempty"`
+		Http   interface{} `json:"http,omitempty"`
+		Socks5 interface{} `json:"socks5,omitempty"`
 	}
 )
 
@@ -150,7 +150,7 @@ func (x *WebShareProxyDTO) ToProxy() (r *model.Proxy) {
 	r = new(model.Proxy)
 
 	r.ID = x.ProxyAddress
-	r.Host = fmt.Sprintf("%s:%s", x.ProxyAddress, x.Ports.Http)
+	r.Host = fmt.Sprintf("%s:%v", x.ProxyAddress, x.Ports.Http)
 	r.Scheme = "http"
 	r.Username = x.Username
 	r.Password = x.Password
