@@ -1,4 +1,4 @@
-package items
+package models
 
 import "time"
 
@@ -10,6 +10,7 @@ type ItemDTO struct {
 
 type ReviewDTO struct {
 	ID           string
+	AmazonID     string
 	Location     string
 	CustomerName string
 	Title        string
