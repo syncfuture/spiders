@@ -1,0 +1,12 @@
+export default {
+    // 支持值为 Object 和 Array
+    'GET /reviews': { reviews: [1, 2] },
+    // GET 可忽略
+    '/users/1': { id: 1 },
+    // 支持自定义函数，API 参考 express@4
+    'POST /users/create': (req: any, res: any) => {
+        // 添加跨域请求头
+        res.setHeader('Access-Control-Allow-Origin', '*');
+        res.end('ok');
+    },
+}
