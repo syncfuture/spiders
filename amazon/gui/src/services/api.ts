@@ -35,8 +35,8 @@ export async function getItems(args: any) {
     return r;
 }
 
-export async function startScrape(args: any) {
-    const r = await request.post('/scrape', {
+export function startScrape(args: any) {
+    request.post('/scrape', {
         data: args,
         requestType: "form",
     })
@@ -46,6 +46,4 @@ export async function startScrape(args: any) {
         .catch(function (err) {
             console.error(err);
         });
-
-    return r;
 }

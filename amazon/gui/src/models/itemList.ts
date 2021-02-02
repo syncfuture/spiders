@@ -60,9 +60,9 @@ const ItemListModel: IItemListModel = {
                 itemNo: state.itemNo,
             };
 
-            const resp = yield call(startScrape, query);
+            yield call(startScrape, query);
 
-            message.success(resp.count + " item(s) reviews scraped.");
+            message.success("reviews scraping started");
         },
         *getItems({ _ }, { call, put, select }) {
             const state = (yield select((x: any) => x["itemList"])) as IItemListModelState;

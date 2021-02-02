@@ -2,6 +2,7 @@ package main
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 	"strconv"
 	"sync"
@@ -14,6 +15,7 @@ import (
 	log "github.com/syncfuture/go/slog"
 	"github.com/syncfuture/go/stask"
 	"github.com/syncfuture/go/u"
+	"github.com/syncfuture/scraper"
 	"github.com/syncfuture/scraper/amazon"
 	"github.com/syncfuture/scraper/store"
 	"github.com/syncfuture/scraper/store/webshare"
@@ -28,17 +30,21 @@ const (
 )
 
 var (
-	_reviewDAL    dal.IReviewDAL
-	_itemDAL      dal.IItemDAL
-	_scrapeLocker = new(sync.Mutex)
-	_store        store.IProxyStore
-	_cp           sconfig.IConfigProvider
+	_reviewDAL     dal.IReviewDAL
+	_itemDAL       dal.IItemDAL
+	_scrapeLocker  = new(sync.Mutex)
+	_store         store.IProxyStore
+	_cp            sconfig.IConfigProvider
+	_listenAddr    string
+	_maxConcurrent int
 )
 
 func init() {
 	_cp = sconfig.NewJsonConfigProvider()
 	log.Init(_cp)
 	_store = webshare.NewWebShareProxyStore(_key)
+	_listenAddr = _cp.GetStringDefault("ListenAddr", ":7000")
+	_maxConcurrent = _cp.GetIntDefault("MaxConcurrent", 15)
 }
 
 func main() {
@@ -65,7 +71,8 @@ func main() {
 	router.POST("/scrape", allowCORS(scrape))
 	router.OPTIONS("/scrape", allowCORS(options))
 
-	fasthttp.ListenAndServe(":7000", router.Handler)
+	log.Infof("Listen on %s", _listenAddr)
+	fasthttp.ListenAndServe(_listenAddr, router.Handler)
 }
 
 func allowCORS(next fasthttp.RequestHandler) fasthttp.RequestHandler {
@@ -130,21 +137,24 @@ func scrape(ctx *fasthttp.RequestCtx) {
 	count := int32(0)
 	fromDate := time.Now().AddDate(0, -1, 0) // 一个月内的评论
 
-	f := stask.NewFlowScheduler(15)
+	f := stask.NewFlowScheduler(_maxConcurrent)
 	f.SliceRun(&result.Items, func(i int, v interface{}) {
 		item := v.(*model.ItemDTO)
 
 		atomic.AddInt32(&count, 1)
 
-		scraper, err := amazon.NewReviewsScraper(_store, item.ASIN)
+		s, err := amazon.NewReviewsScraper(_store, item.ASIN)
 		if u.LogError(err) {
 			item.Status = 2
 			_itemDAL.SaveItems(item)
 			return
 		}
 
-		reviews, err := scraper.FetchPages(&fromDate)
-		if u.LogError(err) {
+		reviews, err := s.FetchPages(&fromDate)
+		if errors.Is(err, scraper.NotFound) {
+			item.Status = 3
+			_itemDAL.SaveItems(item)
+		} else if u.LogError(err) {
 			item.Status = 2
 			_itemDAL.SaveItems(item)
 			return

@@ -124,6 +124,7 @@ class ItemsPage<T extends IPageProps> extends React.Component<T> {
                 <Option value="0">Pending</Option>
                 <Option value="1">Finished</Option>
                 <Option value="2">Error</Option>
+                <Option value="3">Invalid</Option>
               </Select>
             </Form.Item>
 
