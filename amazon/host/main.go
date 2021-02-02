@@ -79,8 +79,7 @@ func allowCORS(next fasthttp.RequestHandler) fasthttp.RequestHandler {
 		next(ctx)
 	}
 }
-func options(ctx *fasthttp.RequestCtx) {
-}
+func options(ctx *fasthttp.RequestCtx) {}
 
 func getReviews(ctx *fasthttp.RequestCtx) {
 	result, err := _reviewDAL.GetReviews()
@@ -101,7 +100,7 @@ func getReviews(ctx *fasthttp.RequestCtx) {
 
 func getItems(ctx *fasthttp.RequestCtx) {
 	query := getItemQuery(ctx)
-	items, err := _itemDAL.GetItems(query)
+	items, err := _itemDAL.GetAllItems(query)
 	if u.LogError(err) {
 		ctx.WriteString(err.Error())
 		return
@@ -131,7 +130,7 @@ func scrape(ctx *fasthttp.RequestCtx) {
 	count := int32(0)
 	fromDate := time.Now().AddDate(0, -1, 0) // 一个月内的评论
 
-	f := stask.NewFlowScheduler(20)
+	f := stask.NewFlowScheduler(15)
 	f.SliceRun(&result.Items, func(i int, v interface{}) {
 		item := v.(*model.ItemDTO)
 
@@ -140,28 +139,34 @@ func scrape(ctx *fasthttp.RequestCtx) {
 		scraper, err := amazon.NewReviewsScraper(_store, item.ASIN)
 		if u.LogError(err) {
 			item.Status = 2
+			_itemDAL.SaveItems(item)
 			return
 		}
 
 		reviews, err := scraper.FetchPages(&fromDate)
 		if u.LogError(err) {
 			item.Status = 2
+			_itemDAL.SaveItems(item)
 			return
 		}
 
-		err = _reviewDAL.SaveReviews(reviews)
-		if u.LogError(err) {
-			item.Status = 2
-			return
+		if len(reviews) > 0 { // 有评论才存储
+			err = _reviewDAL.SaveReviews(reviews)
+			if u.LogError(err) {
+				item.Status = 2
+				_itemDAL.SaveItems(item)
+				return
+			}
 		}
 
 		item.Status = 1
+		_itemDAL.SaveItems(item)
 	})
 
-	err = _itemDAL.SaveItems(result.Items...)
-	if u.LogError(err) {
-		return
-	}
+	// err = _itemDAL.SaveItems(result.Items...)
+	// if u.LogError(err) {
+	// 	return
+	// }
 
 	ctx.Response.Header.SetContentType("application/json; charset=utf-8")
 	json := fmt.Sprintf(`{"count":%d}`, count)
@@ -173,21 +178,21 @@ func getItemQuery(ctx *fasthttp.RequestCtx) *model.ItemQuery {
 	itemNo := string(ctx.FormValue("itemNo"))
 	statusStr := string(ctx.FormValue("status"))
 	pageSizeStr := string(ctx.FormValue("pageSize"))
-	searchAfter := string(ctx.FormValue("searchAfter"))
+	cursor := string(ctx.FormValue("cursor"))
 	status, err := strconv.Atoi(statusStr)
 	if err != nil {
 		status = -1
 	}
 	pageSize, err := strconv.Atoi(pageSizeStr)
 	if err != nil {
-		pageSize = 100
+		pageSize = 10000
 	}
 
 	return &model.ItemQuery{
-		Status:      status,
-		PageSize:    pageSize,
-		SearchAfter: searchAfter,
-		ASIN:        asin,
-		ItemNo:      itemNo,
+		Status:   status,
+		PageSize: pageSize,
+		Cursor:   cursor,
+		ASIN:     asin,
+		ItemNo:   itemNo,
 	}
 }

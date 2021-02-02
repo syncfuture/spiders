@@ -33,9 +33,12 @@ func (x *ESItemDAL) GetItems(in *model.ItemQuery) (r *model.ItemQueryResult, err
 		Sort("ASIN.keyword", false).
 		Size(in.PageSize)
 
-	if in.SearchAfter != "" {
-		searchService.SearchAfter(in.SearchAfter)
+	if in.Cursor != "" {
+		searchService.SearchAfter(in.Cursor)
 	}
+	// if in.Cursor != "" {
+	// 	searchService.ScrollId(in.Cursor)
+	// }
 
 	filters := []elastic.Query{}
 	if in.Status >= 0 {
@@ -48,9 +51,6 @@ func (x *ESItemDAL) GetItems(in *model.ItemQuery) (r *model.ItemQueryResult, err
 		filters = append(filters, elastic.NewMatchQuery("ItemNo.keyword", in.ItemNo))
 	}
 
-	// if in.ScrollID != "" {
-	// 	searchService.ScrollId(in.ScrollID)
-	// }
 	searchService.Query(elastic.NewBoolQuery().Filter(filters...))
 
 	resp, err := searchService.Do(context.Background())
@@ -62,28 +62,26 @@ func (x *ESItemDAL) GetItems(in *model.ItemQuery) (r *model.ItemQueryResult, err
 
 	r.TotalCount = resp.TotalHits()
 	// if r.TotalCount >= int64(in.PageSize) {
-	// 	r.ScrollID = resp.ScrollId // 只有总条数大于分页数时才需要滚动查询，不做此判断ES总是会返回ScrollID
+	// 	r.Cursor = resp.ScrollId // 只有总条数大于分页数时才需要滚动查询，不做此判断ES总是会返回ScrollID
 	// }
+
 	for _, value := range resp.Hits.Hits {
 		var doc *model.ItemDTO
 		err = json.Unmarshal(value.Source, &doc)
 		if !u.LogError(err) {
-			doc.SearchAfter = value.Sort[0].(string)
 			r.Items = append(r.Items, doc)
 		} else {
 			break
 		}
 	}
 
-	if len(r.Items) > 0 {
-		r.SearchAfter = r.Items[len(r.Items)-1].SearchAfter
-	}
+	r.Cursor = r.Items[len(r.Items)-1].ASIN
 
 	return
 }
 
 func (x *ESItemDAL) GetAllItems(in *model.ItemQuery) (*model.ItemQueryResult, error) {
-	in.PageSize = 3000
+	in.PageSize = 10000
 
 	var r1, r2 *model.ItemQueryResult
 	var err error
@@ -91,22 +89,23 @@ func (x *ESItemDAL) GetAllItems(in *model.ItemQuery) (*model.ItemQueryResult, er
 	if err != nil {
 		return nil, err
 	}
-	in.SearchAfter = r1.SearchAfter
+	in.Cursor = r1.Cursor
 	if r1.TotalCount > int64(in.PageSize) {
-		for in.SearchAfter != "" {
+		for in.Cursor != "" {
 			r2, err = x.GetItems(in)
 			if err != nil {
 				return nil, err
 			}
 			if len(r2.Items) > 0 {
 				r1.Items = append(r1.Items, r2.Items...)
-				in.SearchAfter = r2.SearchAfter
+				in.Cursor = r2.Cursor
 			} else {
-				in.SearchAfter = ""
+				in.Cursor = ""
 			}
 		}
 	}
 
+	r1.Cursor = "" // 获取所有不应该有Cusor返回
 	return r1, err
 }
 

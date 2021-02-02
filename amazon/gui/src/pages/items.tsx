@@ -22,12 +22,12 @@ class ItemsPage<T extends IPageProps> extends React.Component<T> {
     });
   };
 
-  loadMore = () => {
-    const { dispatch } = this.props;
-    dispatch({
-      type: 'itemList/loadMore',
-    });
-  };
+  // loadMore = () => {
+  //   const { dispatch } = this.props;
+  //   dispatch({
+  //     type: 'itemList/loadMore',
+  //   });
+  // };
 
   onASINChanged = (e: any) => {
     const { dispatch } = this.props;
@@ -133,7 +133,17 @@ class ItemsPage<T extends IPageProps> extends React.Component<T> {
             <Button onClick={this.scrape}>Scrape</Button>
           </Form>
         </Card>
-        <Table dataSource={model.items} columns={this._columns} rowKey="ASIN" loading={loading} pagination={false} footer={() => <div> <Button type="link" onClick={this.loadMore}>Load more...</Button></div>} />
+        <Table
+          dataSource={model.items}
+          columns={this._columns}
+          rowKey="ASIN"
+          loading={loading}
+          pagination={{
+            total: model.totalCount,
+            showTotal: (total, range) => `${range[0]}-${range[1]} of ${total} items`,
+          }}
+        // footer={() => <div> <Button type="link" onClick={this.loadMore}>Load more...</Button></div>}
+        />
       </div>
     );
   }

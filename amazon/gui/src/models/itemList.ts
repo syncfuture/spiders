@@ -16,7 +16,7 @@ export interface IItemListModel {
     state: IItemListModelState;
     effects: {
         getItems: Effect;
-        loadMore: Effect;
+        // loadMore: Effect;
         // search: Effect;
         scrape: Effect;
     };
@@ -58,7 +58,6 @@ const ItemListModel: IItemListModel = {
                 status: state.status,
                 asin: state.asin,
                 itemNo: state.itemNo,
-                searchAfter: "",
             };
 
             const resp = yield call(startScrape, query);
@@ -72,27 +71,26 @@ const ItemListModel: IItemListModel = {
                 status: state.status,
                 asin: state.asin,
                 itemNo: state.itemNo,
-                searchAfter: "",
             };
             const resp = yield call(getItems, query);
             yield put({ type: 'setState', payload: { items: resp.Items ?? [], totalCount: resp.TotalCount } });
         },
-        *loadMore({ _ }, { call, put, select }) {
-            const state = (yield select((x: any) => x["itemList"])) as IItemListModelState;
-            const query = {
-                pageSize: state.pageSize,
-                status: state.status,
-                asin: state.asin,
-                itemNo: state.itemNo,
-                searchAfter: "",
-            };
-            if (state.items.length > 0) {
-                query.searchAfter = state.items[state.items.length - 1].SearchAfter;
-            }
-            const resp = yield call(getItems, query);
-            const items = state.items.concat(resp.Items ?? []);
-            yield put({ type: 'setState', payload: { items: items, totalCount: resp.TotalCount } });
-        },
+        // *loadMore({ _ }, { call, put, select }) {
+        //     const state = (yield select((x: any) => x["itemList"])) as IItemListModelState;
+        //     const query = {
+        //         pageSize: state.pageSize,
+        //         status: state.status,
+        //         asin: state.asin,
+        //         itemNo: state.itemNo,
+        //         cusor: "",
+        //     };
+        //     if (state.items.length > 0) {
+        //         query.searchAfter = state.items[state.items.length - 1].SearchAfter;
+        //     }
+        //     const resp = yield call(getItems, query);
+        //     const items = state.items.concat(resp.Items ?? []);
+        //     yield put({ type: 'setState', payload: { items: items, totalCount: resp.TotalCount } });
+        // },
     },
     reducers: {
         setState(state, action) {
