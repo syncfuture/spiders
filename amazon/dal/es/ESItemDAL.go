@@ -75,7 +75,39 @@ func (x *ESItemDAL) GetItems(in *model.ItemQuery) (r *model.ItemQueryResult, err
 		}
 	}
 
+	if len(r.Items) > 0 {
+		r.SearchAfter = r.Items[len(r.Items)-1].SearchAfter
+	}
+
 	return
+}
+
+func (x *ESItemDAL) GetAllItems(in *model.ItemQuery) (*model.ItemQueryResult, error) {
+	in.PageSize = 3000
+
+	var r1, r2 *model.ItemQueryResult
+	var err error
+	r1, err = x.GetItems(in)
+	if err != nil {
+		return nil, err
+	}
+	in.SearchAfter = r1.SearchAfter
+	if r1.TotalCount > int64(in.PageSize) {
+		for in.SearchAfter != "" {
+			r2, err = x.GetItems(in)
+			if err != nil {
+				return nil, err
+			}
+			if len(r2.Items) > 0 {
+				r1.Items = append(r1.Items, r2.Items...)
+				in.SearchAfter = r2.SearchAfter
+			} else {
+				in.SearchAfter = ""
+			}
+		}
+	}
+
+	return r1, err
 }
 
 func (x *ESItemDAL) SaveItems(items ...*model.ItemDTO) error {
@@ -90,7 +122,7 @@ func (x *ESItemDAL) SaveItems(items ...*model.ItemDTO) error {
 	if err != nil {
 		return err
 	} else {
-		log.Debugf("[%d] reviews saved", len(resp.Succeeded()))
+		log.Debugf("[%d] items saved", len(resp.Succeeded()))
 	}
 	return err
 }
@@ -121,7 +153,7 @@ func (x *ESItemDAL) DeleteItems(items ...*model.ItemDTO) error {
 	if err != nil {
 		return err
 	} else {
-		log.Debugf("[%d] reviews saved", len(resp.Succeeded()))
+		log.Debugf("[%d] items deleted", len(resp.Succeeded()))
 	}
 	return err
 }

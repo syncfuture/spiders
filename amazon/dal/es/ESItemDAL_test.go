@@ -64,6 +64,21 @@ func TestESItemDAL_GetItems(t *testing.T) {
 	assert.NotEmpty(t, rs)
 }
 
+func TestESItemDAL_GetAllItems(t *testing.T) {
+	esDAL, err := NewESItemDAL(
+		elastic.SetURL("http://localhost:9200"),
+	)
+	if u.LogError(err) {
+		return
+	}
+
+	rs, err := esDAL.GetAllItems(&model.ItemQuery{
+		Status: -1,
+	})
+	u.LogError(err)
+	assert.NotEmpty(t, rs)
+}
+
 func TestESItemDAL_SaveItems(t *testing.T) {
 	esDAL, err := NewESItemDAL(
 		elastic.SetURL("http://localhost:9200"),

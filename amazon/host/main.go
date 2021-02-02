@@ -71,7 +71,6 @@ func main() {
 func allowCORS(next fasthttp.RequestHandler) fasthttp.RequestHandler {
 	return func(ctx *fasthttp.RequestCtx) {
 
-		//ç
 		ctx.Response.Header.Add("Access-Control-Allow-Origin", "*")
 		ctx.Response.Header.Add("Access-Control-Allow-Credentials", "true")
 		ctx.Response.Header.Add("Access-Control-Allow-Methods", "POST,OPTIONS,GET,PUT,DELETE")
@@ -123,14 +122,14 @@ func scrape(ctx *fasthttp.RequestCtx) {
 	defer _scrapeLocker.Unlock()
 
 	query := getItemQuery(ctx)
-	result, err := _itemDAL.GetItems(query)
+	result, err := _itemDAL.GetAllItems(query)
 	if u.LogError(err) {
 		ctx.WriteString(err.Error())
 		return
 	}
 
 	count := int32(0)
-	fromDate := time.Now().Add(-5 * 24 * time.Hour)
+	fromDate := time.Now().AddDate(0, -1, 0) // 一个月内的评论
 
 	f := stask.NewFlowScheduler(20)
 	f.SliceRun(&result.Items, func(i int, v interface{}) {
