@@ -12,18 +12,14 @@ interface IPageProps {
 
 class ItemsPage<T extends IPageProps> extends React.Component<T> {
   componentDidMount() {
+    this.getItems();
+  }
+
+  getItems = () => {
     const { dispatch } = this.props;
     dispatch({
       type: 'itemList/getItems',
     });
-  }
-
-  handleStatusSelectionChange = (value: string) => {
-    const { dispatch } = this.props;
-
-    // dispatch({
-    //   type: 'itemList/getItems'
-    // });
   };
 
   loadMore = () => {
@@ -33,6 +29,35 @@ class ItemsPage<T extends IPageProps> extends React.Component<T> {
     });
   };
 
+  onASINChanged = (e: any) => {
+    const { dispatch } = this.props;
+    dispatch({
+      type: 'itemList/setState',
+      payload: {
+        asin: e.target.value,
+      },
+    });
+  };
+
+  onItemNoChanged = (e: any) => {
+    const { dispatch } = this.props;
+    dispatch({
+      type: 'itemList/setState',
+      payload: {
+        itemNo: e.target.value,
+      },
+    });
+  };
+
+  onStatusChanged = (newValue: number) => {
+    const { dispatch } = this.props;
+    dispatch({
+      type: 'itemList/setState',
+      payload: {
+        status: newValue,
+      },
+    });
+  };
 
   search = (values: any) => {
     const { dispatch } = this.props;
@@ -82,19 +107,19 @@ class ItemsPage<T extends IPageProps> extends React.Component<T> {
           <Form
             name="basic"
             layout="inline"
-            initialValues={{ status: "-1" }}
-            onFinish={this.search}
+            initialValues={{ status: model.status.toString() }}
+            onFinish={this.getItems}
           >
             <Form.Item name="asin">
-              <Input placeholder="ASIN" />
+              <Input placeholder="ASIN" onChange={this.onASINChanged} />
             </Form.Item>
 
             <Form.Item name="itemNo">
-              <Input placeholder="ItemNo" />
+              <Input placeholder="ItemNo" onChange={this.onItemNoChanged} />
             </Form.Item>
 
             <Form.Item name="status">
-              <Select style={{ width: 120 }} onChange={this.handleStatusSelectionChange}>
+              <Select style={{ width: 120 }} onChange={this.onStatusChanged}>
                 <Option value="-1">All</Option>
                 <Option value="0">Pending</Option>
                 <Option value="1">Finished</Option>

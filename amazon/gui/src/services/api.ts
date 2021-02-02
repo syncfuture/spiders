@@ -1,7 +1,16 @@
-import request from 'umi-request';
+import { extend } from 'umi-request';
+
+const request = extend({
+    prefix: 'http://localhost:7000',
+    // timeout: 1000,
+    // headers: {
+    //     'Content-Type': 'multipart/form-data',
+    // },
+});
+
 
 export async function getReviews() {
-    const r = await request.get('http://localhost:7000/reviews')
+    const r = await request.get('/reviews')
         .then(function (resp) {
             return resp;
         })
@@ -13,7 +22,7 @@ export async function getReviews() {
 }
 
 export async function getItems(args: any) {
-    const r = await request.get('http://localhost:7000/items', {
+    const r = await request.get('/items', {
         params: args,
     })
         .then(function (resp) {
@@ -27,8 +36,9 @@ export async function getItems(args: any) {
 }
 
 export async function startScrape(args: any) {
-    const r = await request.post('http://localhost:7000/scrape', {
+    const r = await request.post('/scrape', {
         data: args,
+        requestType: "form",
     })
         .then(function (resp) {
             return resp;

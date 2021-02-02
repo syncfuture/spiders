@@ -5,13 +5,10 @@ import { Reducer, Effect } from 'umi';
 export interface IItemListModelState {
     items: any[],
     totalCount: number,
-    query: {
-        pageSize: number,
-        status: number,
-        asin: string,
-        itemNo: string,
-        searchAfter: string,
-    }
+    pageSize: number,
+    status: number,
+    asin: string,
+    itemNo: string,
 }
 
 export interface IItemListModel {
@@ -20,7 +17,7 @@ export interface IItemListModel {
     effects: {
         getItems: Effect;
         loadMore: Effect;
-        search: Effect;
+        // search: Effect;
         scrape: Effect;
     };
     reducers: {
@@ -34,58 +31,67 @@ const ItemListModel: IItemListModel = {
     state: {
         items: [],
         totalCount: 0,
-        query: {
-            pageSize: 10,
-            status: -1,
-            asin: "",
-            itemNo: "",
-            searchAfter: "",
-        },
+        pageSize: 10,
+        status: -1,
+        asin: "",
+        itemNo: "",
     },
 
     effects: {
-        *search({ payload }, { call, put, select }) {
+        // *search({ _ }, { call, put, select }) {
+        //     const state = yield select((x: any) => x["itemList"]);
+        //     const query = {
+        //         pageSize: state.pageSize,
+        //         status: state.status,
+        //         asin: state.asin,
+        //         itemNo: state.itemNo,
+        //         searchAfter: "",
+        //     };
+
+        //     const resp = yield call(getItems, query);
+        //     yield put({ type: 'setState', payload: { items: resp.Items, totalCount: resp.TotalCount } });
+        // },
+        *scrape({ _ }, { call, select }) {
             const state = yield select((x: any) => x["itemList"]);
             const query = {
-                ...state.query
+                pageSize: state.pageSize,
+                status: state.status,
+                asin: state.asin,
+                itemNo: state.itemNo,
+                searchAfter: "",
             };
-            query.status = payload.status;
-            query.asin = payload.asin;
-            query.itemNo = payload.itemNo;
 
-            const resp = yield call(getItems, query);
-            yield put({ type: 'setState', payload: { items: resp.Items, totalCount: resp.TotalCount } });
+            const resp = yield call(startScrape, query);
+
+            message.success(resp.count + " item(s) reviews scraped.");
         },
         *getItems({ _ }, { call, put, select }) {
-            const state = yield select((x: any) => x["itemList"]);
-            const resp = yield call(getItems, state.query);
-            yield put({ type: 'setState', payload: { items: resp.Items, totalCount: resp.TotalCount } });
+            const state = (yield select((x: any) => x["itemList"])) as IItemListModelState;
+            const query = {
+                pageSize: state.pageSize,
+                status: state.status,
+                asin: state.asin,
+                itemNo: state.itemNo,
+                searchAfter: "",
+            };
+            const resp = yield call(getItems, query);
+            yield put({ type: 'setState', payload: { items: resp.Items ?? [], totalCount: resp.TotalCount } });
         },
         *loadMore({ _ }, { call, put, select }) {
             const state = (yield select((x: any) => x["itemList"])) as IItemListModelState;
             const query = {
-                ...state.query
+                pageSize: state.pageSize,
+                status: state.status,
+                asin: state.asin,
+                itemNo: state.itemNo,
+                searchAfter: "",
             };
             if (state.items.length > 0) {
                 query.searchAfter = state.items[state.items.length - 1].SearchAfter;
             }
             const resp = yield call(getItems, query);
-            const items = state.items.concat(resp.Items)
-
+            const items = state.items.concat(resp.Items ?? []);
             yield put({ type: 'setState', payload: { items: items, totalCount: resp.TotalCount } });
-        },
-        *scrape({ payload }, { call, put, select }) {
-            const state = yield select((x: any) => x["itemList"]);
-            const query = {
-                ...state.query
-            };
-            query.status = payload.status;
-            query.asin = payload.asin;
-            query.itemNo = payload.itemNo;
-
-            const resp = yield call(startScrape, query);
-
-            message.success(resp.count + " item(s) reviews scraped.");
         },
     },
     reducers: {

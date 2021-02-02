@@ -1,5 +1,7 @@
 package model
 
+import "github.com/syncfuture/scraper/amazon"
+
 type ItemDTO struct {
 	ASIN        string
 	ItemNo      string
@@ -16,7 +18,15 @@ type ItemQuery struct {
 }
 
 type ItemQueryResult struct {
+	MsgCode     string
 	SearchAfter string
 	Items       []*ItemDTO
+	TotalCount  int64
+}
+
+type ReviewQueryResult struct {
+	MsgCode     string
+	SearchAfter string
+	Reviews     []*amazon.ReviewDTO
 	TotalCount  int64
 }

@@ -10,6 +10,7 @@ import (
 	"github.com/syncfuture/go/u"
 	"github.com/syncfuture/scraper/amazon"
 	"github.com/syncfuture/spiders/amazon/dal"
+	"github.com/syncfuture/spiders/amazon/model"
 )
 
 const _reviewIndex = "amazon-reviews"
@@ -42,8 +43,8 @@ func (x *ESReviewDAL) SaveReviews(reviews []*amazon.ReviewDTO) error {
 	return err
 }
 
-func (x *ESReviewDAL) GetReviews() (r []*amazon.ReviewDTO, err error) {
-	r = make([]*amazon.ReviewDTO, 0)
+func (x *ESReviewDAL) GetReviews() (r *model.ReviewQueryResult, err error) {
+	r = new(model.ReviewQueryResult)
 	// default
 	searchService := x.esClient.Search().Index(_reviewIndex)
 
@@ -66,7 +67,7 @@ func (x *ESReviewDAL) GetReviews() (r []*amazon.ReviewDTO, err error) {
 		var doc *amazon.ReviewDTO
 		err = json.Unmarshal(value.Source, &doc)
 		if !u.LogError(err) {
-			r = append(r, doc)
+			r.Reviews = append(r.Reviews, doc)
 		} else {
 			break
 		}

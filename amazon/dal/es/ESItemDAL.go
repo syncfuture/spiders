@@ -95,6 +95,20 @@ func (x *ESItemDAL) SaveItems(items ...*model.ItemDTO) error {
 	return err
 }
 
+// func (x *ESItemDAL) SaveItem(item *model.ItemDTO) error {
+// 	updateService := x.esClient.Update().Index(_itemIndex).
+// 		Id(item.ASIN).
+// 		Type("items").
+// 		Doc(map[string]interface{}{"Status": item.Status})
+// 	resp, err := updateService.Do(context.Background())
+// 	if err != nil {
+// 		return err
+// 	} else {
+// 		log.Debug(resp.Result)
+// 	}
+// 	return err
+// }
+
 func (x *ESItemDAL) DeleteItems(items ...*model.ItemDTO) error {
 	bulkService := x.esClient.Bulk().Index(_itemIndex)
 

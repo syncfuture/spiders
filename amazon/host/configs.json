@@ -2,5 +2,8 @@
     "Log": {
         "Level": "debug",
         "DetailLevel": "warn"
+    },
+    "ES": {
+        "Addrs": ["http://192.168.188.200:9200"]
     }
 }

@@ -4,13 +4,19 @@ import (
 	"encoding/json"
 	"fmt"
 	"strconv"
+	"sync"
 	"sync/atomic"
+	"time"
 
 	"github.com/buaazp/fasthttprouter"
 	"github.com/olivere/elastic/v7"
-	"github.com/syncfuture/go/srand"
+	"github.com/syncfuture/go/sconfig"
+	log "github.com/syncfuture/go/slog"
 	"github.com/syncfuture/go/stask"
 	"github.com/syncfuture/go/u"
+	"github.com/syncfuture/scraper/amazon"
+	"github.com/syncfuture/scraper/store"
+	"github.com/syncfuture/scraper/store/webshare"
 	"github.com/syncfuture/spiders/amazon/dal"
 	"github.com/syncfuture/spiders/amazon/dal/es"
 	"github.com/syncfuture/spiders/amazon/model"
@@ -22,36 +28,32 @@ const (
 )
 
 var (
-	_reviewDAL dal.IReviewDAL
-	_itemDAL   dal.IItemDAL
+	_reviewDAL    dal.IReviewDAL
+	_itemDAL      dal.IItemDAL
+	_scrapeLocker = new(sync.Mutex)
+	_store        store.IProxyStore
+	_cp           sconfig.IConfigProvider
 )
 
-func main() {
-	// cp := sconfig.NewJsonConfigProvider()
-	// log.Init(cp)
-	// store := webshare.NewWebShareProxyStore(_key)
-	// scraper, err := amazon.NewReviewsScraper(store, "B000SDKDM4")
-	// if u.LogError(err) {
-	// 	return
-	// }
+func init() {
+	_cp = sconfig.NewJsonConfigProvider()
+	log.Init(_cp)
+	_store = webshare.NewWebShareProxyStore(_key)
+}
 
-	// fromDate := time.Now().Add(-5 * 24 * time.Hour)
-	// reviews, err := scraper.FetchPages(&fromDate)
-	// if u.LogError(err) {
-	// 	return
-	// }
-	// log.Infof("%d reviews fetched", len(reviews))
+func main() {
+	addrs := _cp.GetStringSlice("ES.Addrs")
 
 	var err error
 	_itemDAL, err = es.NewESItemDAL(
-		elastic.SetURL("http://192.168.188.166:9200"),
+		elastic.SetURL(addrs...),
 	)
 	if u.LogError(err) {
 		return
 	}
 
 	_reviewDAL, err = es.NewESReviewDAL(
-		elastic.SetURL("http://192.168.188.166:9200"),
+		elastic.SetURL(addrs...),
 	)
 	if u.LogError(err) {
 		return
@@ -61,6 +63,7 @@ func main() {
 	router.GET("/reviews", allowCORS(getReviews))
 	router.GET("/items", allowCORS(getItems))
 	router.POST("/scrape", allowCORS(scrape))
+	router.OPTIONS("/scrape", allowCORS(options))
 
 	fasthttp.ListenAndServe(":7000", router.Handler)
 }
@@ -77,15 +80,17 @@ func allowCORS(next fasthttp.RequestHandler) fasthttp.RequestHandler {
 		next(ctx)
 	}
 }
+func options(ctx *fasthttp.RequestCtx) {
+}
 
 func getReviews(ctx *fasthttp.RequestCtx) {
-	reviews, err := _reviewDAL.GetReviews()
+	result, err := _reviewDAL.GetReviews()
 	if u.LogError(err) {
 		ctx.WriteString(err.Error())
 		return
 	}
 
-	json, err := json.Marshal(reviews)
+	json, err := json.Marshal(result.Reviews)
 	if u.LogError(err) {
 		ctx.WriteString(err.Error())
 		return
@@ -114,22 +119,50 @@ func getItems(ctx *fasthttp.RequestCtx) {
 }
 
 func scrape(ctx *fasthttp.RequestCtx) {
+	_scrapeLocker.Lock()
+	defer _scrapeLocker.Unlock()
+
 	query := getItemQuery(ctx)
-	items, err := _itemDAL.GetItems(query)
+	result, err := _itemDAL.GetItems(query)
 	if u.LogError(err) {
 		ctx.WriteString(err.Error())
 		return
 	}
 
 	count := int32(0)
+	fromDate := time.Now().Add(-5 * 24 * time.Hour)
 
 	f := stask.NewFlowScheduler(20)
-	f.SliceRun(items, func(i int, v interface{}) {
+	f.SliceRun(&result.Items, func(i int, v interface{}) {
 		item := v.(*model.ItemDTO)
 
 		atomic.AddInt32(&count, 1)
-		item.Status = srand.IntRange(0, 2)
+
+		scraper, err := amazon.NewReviewsScraper(_store, item.ASIN)
+		if u.LogError(err) {
+			item.Status = 2
+			return
+		}
+
+		reviews, err := scraper.FetchPages(&fromDate)
+		if u.LogError(err) {
+			item.Status = 2
+			return
+		}
+
+		err = _reviewDAL.SaveReviews(reviews)
+		if u.LogError(err) {
+			item.Status = 2
+			return
+		}
+
+		item.Status = 1
 	})
+
+	err = _itemDAL.SaveItems(result.Items...)
+	if u.LogError(err) {
+		return
+	}
 
 	ctx.Response.Header.SetContentType("application/json; charset=utf-8")
 	json := fmt.Sprintf(`{"count":%d}`, count)
