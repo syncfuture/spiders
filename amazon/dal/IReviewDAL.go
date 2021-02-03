@@ -7,5 +7,6 @@ import (
 
 type IReviewDAL interface {
 	SaveReviews(reviews []*amazon.ReviewDTO) error
-	GetReviews() (*model.ReviewQueryResult, error)
+	GetReviews(*model.ReviewQuery) (*model.ReviewQueryResult, error)
+	GetAllReviews(*model.ReviewQuery) (*model.ReviewQueryResult, error)
 }

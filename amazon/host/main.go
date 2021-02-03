@@ -2,7 +2,6 @@ package main
 
 import (
 	"encoding/json"
-	"errors"
 	"fmt"
 	"strconv"
 	"sync"
@@ -15,7 +14,6 @@ import (
 	log "github.com/syncfuture/go/slog"
 	"github.com/syncfuture/go/stask"
 	"github.com/syncfuture/go/u"
-	"github.com/syncfuture/scraper"
 	"github.com/syncfuture/scraper/amazon"
 	"github.com/syncfuture/scraper/store"
 	"github.com/syncfuture/scraper/store/webshare"
@@ -67,7 +65,11 @@ func main() {
 
 	router := fasthttprouter.New()
 	router.GET("/reviews", allowCORS(getReviews))
+	router.POST("/reviews/export", allowCORS(exportReviews))
+	router.OPTIONS("/reviews/export", allowCORS(options))
+
 	router.GET("/items", allowCORS(getItems))
+
 	router.POST("/scrape", allowCORS(scrape))
 	router.OPTIONS("/scrape", allowCORS(options))
 
@@ -89,7 +91,8 @@ func allowCORS(next fasthttp.RequestHandler) fasthttp.RequestHandler {
 func options(ctx *fasthttp.RequestCtx) {}
 
 func getReviews(ctx *fasthttp.RequestCtx) {
-	result, err := _reviewDAL.GetReviews()
+	query := getReviewQuery(ctx)
+	result, err := _reviewDAL.GetAllReviews(query)
 	if u.LogError(err) {
 		ctx.WriteString(err.Error())
 		return
@@ -143,27 +146,23 @@ func scrape(ctx *fasthttp.RequestCtx) {
 
 		atomic.AddInt32(&count, 1)
 
-		s, err := amazon.NewReviewsScraper(_store, item.ASIN)
-		if u.LogError(err) {
-			item.Status = 2
-			_itemDAL.SaveItems(item)
-			return
-		}
-
+		s := amazon.NewReviewsScraper(_store, item.ASIN)
 		reviews, err := s.FetchPages(&fromDate)
-		if errors.Is(err, scraper.NotFound) {
-			item.Status = 3
-			_itemDAL.SaveItems(item)
-		} else if u.LogError(err) {
-			item.Status = 2
+		if u.LogError(err) {
+			item.Status = -1
 			_itemDAL.SaveItems(item)
 			return
 		}
 
 		if len(reviews) > 0 { // 有评论才存储
+			// 关联E&E ItemNo
+			for _, review := range reviews {
+				review.CustomerNo = item.ItemNo
+			}
+
 			err = _reviewDAL.SaveReviews(reviews)
 			if u.LogError(err) {
-				item.Status = 2
+				item.Status = -1
 				_itemDAL.SaveItems(item)
 				return
 			}
@@ -189,20 +188,48 @@ func getItemQuery(ctx *fasthttp.RequestCtx) *model.ItemQuery {
 	statusStr := string(ctx.FormValue("status"))
 	pageSizeStr := string(ctx.FormValue("pageSize"))
 	cursor := string(ctx.FormValue("cursor"))
-	status, err := strconv.Atoi(statusStr)
-	if err != nil {
-		status = -1
-	}
+	// status, err := strconv.Atoi(statusStr)
+	// if err != nil {
+	// 	status = -1
+	// }
 	pageSize, err := strconv.Atoi(pageSizeStr)
 	if err != nil {
 		pageSize = 10000
 	}
 
 	return &model.ItemQuery{
-		Status:   status,
+		Status:   statusStr,
 		PageSize: pageSize,
 		Cursor:   cursor,
 		ASIN:     asin,
 		ItemNo:   itemNo,
 	}
+}
+
+func getReviewQuery(ctx *fasthttp.RequestCtx) *model.ReviewQuery {
+	asin := string(ctx.FormValue("asin"))
+	itemNo := string(ctx.FormValue("itemNo"))
+	pageSizeStr := string(ctx.FormValue("pageSize"))
+	cursor := string(ctx.FormValue("cursor"))
+	pageSize, err := strconv.Atoi(pageSizeStr)
+	if err != nil {
+		pageSize = 10000
+	}
+
+	return &model.ReviewQuery{
+		PageSize: pageSize,
+		Cursor:   cursor,
+		ASIN:     asin,
+		ItemNo:   itemNo,
+	}
+}
+
+func exportReviews(ctx *fasthttp.RequestCtx) {
+	// query := getReviewQuery(ctx)
+	// result, err := _reviewDAL.GetAllReviews(query)
+	// if u.LogError(err) {
+	// 	ctx.WriteString(err.Error())
+	// 	return
+	// }
+
 }

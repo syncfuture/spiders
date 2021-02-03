@@ -120,11 +120,11 @@ class ItemsPage<T extends IPageProps> extends React.Component<T> {
 
             <Form.Item name="status">
               <Select style={{ width: 120 }} onChange={this.onStatusChanged}>
-                <Option value="-1">All</Option>
+                <Option value="">All</Option>
                 <Option value="0">Pending</Option>
                 <Option value="1">Finished</Option>
-                <Option value="2">Error</Option>
-                <Option value="3">Invalid</Option>
+                <Option value="-1">Error</Option>
+                <Option value="404">NotFound</Option>
               </Select>
             </Form.Item>
 

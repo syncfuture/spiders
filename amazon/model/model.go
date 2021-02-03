@@ -12,8 +12,8 @@ type ItemQuery struct {
 	Cursor   string
 	ASIN     string
 	ItemNo   string
+	Status   string
 	PageSize int
-	Status   int
 }
 
 type ItemQueryResult struct {
@@ -21,6 +21,15 @@ type ItemQueryResult struct {
 	Cursor     string
 	Items      []*ItemDTO
 	TotalCount int64
+}
+
+type ReviewQuery struct {
+	Cursor   string
+	ASIN     string
+	ItemNo   string
+	From     string
+	To       string
+	PageSize int
 }
 
 type ReviewQueryResult struct {

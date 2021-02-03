@@ -6,7 +6,7 @@ export interface IItemListModelState {
     items: any[],
     totalCount: number,
     pageSize: number,
-    status: number,
+    status: string,
     asin: string,
     itemNo: string,
 }
@@ -32,7 +32,7 @@ const ItemListModel: IItemListModel = {
         items: [],
         totalCount: 0,
         pageSize: 10,
-        status: -1,
+        status: "",
         asin: "",
         itemNo: "",
     },

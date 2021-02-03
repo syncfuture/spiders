@@ -28,20 +28,20 @@ func NewESItemDAL(options ...elastic.ClientOptionFunc) (dal.IItemDAL, error) {
 func (x *ESItemDAL) GetItems(in *model.ItemQuery) (r *model.ItemQueryResult, err error) {
 	r = new(model.ItemQueryResult)
 
-	searchService := x.esClient.Search(_itemIndex).
-		// searchService := x.esClient.Scroll(_itemIndex).
+	// searchService := x.esClient.Search(_itemIndex).
+	searchService := x.esClient.Scroll(_itemIndex).
 		Sort("ASIN.keyword", false).
 		Size(in.PageSize)
 
-	if in.Cursor != "" {
-		searchService.SearchAfter(in.Cursor)
-	}
 	// if in.Cursor != "" {
-	// 	searchService.ScrollId(in.Cursor)
+	// 	searchService.SearchAfter(in.Cursor)
 	// }
+	if in.Cursor != "" {
+		searchService.ScrollId(in.Cursor)
+	}
 
 	filters := []elastic.Query{}
-	if in.Status >= 0 {
+	if in.Status != "" {
 		filters = append(filters, elastic.NewMatchQuery("Status", in.Status))
 	}
 	if in.ASIN != "" {
@@ -61,9 +61,6 @@ func (x *ESItemDAL) GetItems(in *model.ItemQuery) (r *model.ItemQueryResult, err
 	}
 
 	r.TotalCount = resp.TotalHits()
-	// if r.TotalCount >= int64(in.PageSize) {
-	// 	r.Cursor = resp.ScrollId // 只有总条数大于分页数时才需要滚动查询，不做此判断ES总是会返回ScrollID
-	// }
 
 	for _, value := range resp.Hits.Hits {
 		var doc *model.ItemDTO
@@ -75,8 +72,10 @@ func (x *ESItemDAL) GetItems(in *model.ItemQuery) (r *model.ItemQueryResult, err
 		}
 	}
 
-	r.Cursor = r.Items[len(r.Items)-1].ASIN
-
+	// r.Cursor = r.Items[len(r.Items)-1].ASIN
+	if r.TotalCount >= int64(in.PageSize) {
+		r.Cursor = resp.ScrollId // 只有总条数大于分页数时才需要滚动查询，不做此判断ES总是会返回ScrollID
+	}
 	return
 }
 
@@ -90,18 +89,16 @@ func (x *ESItemDAL) GetAllItems(in *model.ItemQuery) (*model.ItemQueryResult, er
 		return nil, err
 	}
 	in.Cursor = r1.Cursor
-	if r1.TotalCount > int64(in.PageSize) {
-		for in.Cursor != "" {
-			r2, err = x.GetItems(in)
-			if err != nil {
-				return nil, err
-			}
-			if len(r2.Items) > 0 {
-				r1.Items = append(r1.Items, r2.Items...)
-				in.Cursor = r2.Cursor
-			} else {
-				in.Cursor = ""
-			}
+	for in.Cursor != "" {
+		r2, err = x.GetItems(in)
+		if err != nil {
+			return nil, err
+		}
+		if len(r2.Items) > 0 {
+			r1.Items = append(r1.Items, r2.Items...)
+			in.Cursor = r2.Cursor
+		} else {
+			in.Cursor = ""
 		}
 	}
 

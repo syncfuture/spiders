@@ -58,7 +58,7 @@ func TestESItemDAL_GetItems(t *testing.T) {
 		ASIN:     "AAAAAAA",
 		ItemNo:   "Item0001",
 		PageSize: 10000,
-		Status:   2,
+		Status:   "2",
 	})
 	u.LogError(err)
 	assert.NotEmpty(t, rs)
@@ -73,7 +73,7 @@ func TestESItemDAL_GetAllItems(t *testing.T) {
 	}
 
 	rs, err := esDAL.GetAllItems(&model.ItemQuery{
-		Status: -1,
+		// Status: -1,
 	})
 	u.LogError(err)
 	assert.NotEmpty(t, rs)
@@ -108,4 +108,30 @@ func TestESItemDAL_DeleteItems(t *testing.T) {
 		Status: 2,
 	})
 	u.LogError(err)
+}
+
+func TestESItemDAL_ResetToPending(t *testing.T) {
+	esDAL, err := NewESItemDAL(
+		elastic.SetURL("http://192.168.188.200:9200"),
+	)
+	if u.LogError(err) {
+		return
+	}
+
+	rs, err := esDAL.GetAllItems(&model.ItemQuery{
+		Status: "1",
+	})
+	u.LogError(err)
+	assert.NotEmpty(t, rs)
+
+	a := make([]*model.ItemDTO, 0, len(rs.Items))
+	for _, x := range rs.Items {
+		x.Status = 0
+		a = append(a, x)
+	}
+
+	err = esDAL.SaveItems(a...)
+	if u.LogError(err) {
+		return
+	}
 }
