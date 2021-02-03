@@ -9,8 +9,10 @@ const request = extend({
 });
 
 
-export async function getReviews() {
-    const r = await request.get('/reviews')
+export async function getReviews(query: any) {
+    const r = await request.get('/reviews', {
+        params: query,
+    })
         .then(function (resp) {
             return resp;
         })
@@ -21,9 +23,9 @@ export async function getReviews() {
     return r;
 }
 
-export async function getItems(args: any) {
+export async function getItems(query: any) {
     const r = await request.get('/items', {
-        params: args,
+        params: query,
     })
         .then(function (resp) {
             return resp;

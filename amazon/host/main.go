@@ -12,6 +12,7 @@ import (
 	"github.com/olivere/elastic/v7"
 	"github.com/syncfuture/go/sconfig"
 	log "github.com/syncfuture/go/slog"
+	"github.com/syncfuture/go/spool"
 	"github.com/syncfuture/go/stask"
 	"github.com/syncfuture/go/u"
 	"github.com/syncfuture/scraper/amazon"
@@ -20,6 +21,7 @@ import (
 	"github.com/syncfuture/spiders/amazon/dal"
 	"github.com/syncfuture/spiders/amazon/dal/es"
 	"github.com/syncfuture/spiders/amazon/model"
+	"github.com/tealeg/xlsx"
 	"github.com/valyala/fasthttp"
 )
 
@@ -35,6 +37,7 @@ var (
 	_cp            sconfig.IConfigProvider
 	_listenAddr    string
 	_maxConcurrent int
+	_bufferPool    = spool.NewSyncBufferPool(4096)
 )
 
 func init() {
@@ -188,10 +191,6 @@ func getItemQuery(ctx *fasthttp.RequestCtx) *model.ItemQuery {
 	statusStr := string(ctx.FormValue("status"))
 	pageSizeStr := string(ctx.FormValue("pageSize"))
 	cursor := string(ctx.FormValue("cursor"))
-	// status, err := strconv.Atoi(statusStr)
-	// if err != nil {
-	// 	status = -1
-	// }
 	pageSize, err := strconv.Atoi(pageSizeStr)
 	if err != nil {
 		pageSize = 10000
@@ -211,6 +210,7 @@ func getReviewQuery(ctx *fasthttp.RequestCtx) *model.ReviewQuery {
 	itemNo := string(ctx.FormValue("itemNo"))
 	pageSizeStr := string(ctx.FormValue("pageSize"))
 	cursor := string(ctx.FormValue("cursor"))
+	fromDate := string(ctx.FormValue("fromDate"))
 	pageSize, err := strconv.Atoi(pageSizeStr)
 	if err != nil {
 		pageSize = 10000
@@ -221,15 +221,58 @@ func getReviewQuery(ctx *fasthttp.RequestCtx) *model.ReviewQuery {
 		Cursor:   cursor,
 		ASIN:     asin,
 		ItemNo:   itemNo,
+		FromDate: fromDate,
 	}
 }
 
 func exportReviews(ctx *fasthttp.RequestCtx) {
-	// query := getReviewQuery(ctx)
-	// result, err := _reviewDAL.GetAllReviews(query)
-	// if u.LogError(err) {
-	// 	ctx.WriteString(err.Error())
-	// 	return
-	// }
+	query := getReviewQuery(ctx)
+	result, err := _reviewDAL.GetAllReviews(query)
+	if u.LogError(err) {
+		ctx.WriteString(err.Error())
+		return
+	}
 
+	wb := xlsx.NewFile()
+	sheet, err := wb.AddSheet("Reviews")
+	if u.LogError(err) {
+		ctx.WriteString(err.Error())
+		return
+	}
+	header := sheet.AddRow()
+	header.AddCell().Value = "AmazonID"
+	header.AddCell().Value = "ASIN"
+	header.AddCell().Value = "ItemNo"
+	header.AddCell().Value = "StripInfo"
+	header.AddCell().Value = "Rating"
+	header.AddCell().Value = "IsVerified"
+	header.AddCell().Value = "Location"
+	header.AddCell().Value = "CustomerName"
+	header.AddCell().Value = "CreatedOn"
+	header.AddCell().Value = "Title"
+	header.AddCell().Value = "Content"
+
+	for _, review := range result.Reviews {
+		row := sheet.AddRow()
+		row.AddCell().Value = review.AmazonID
+		row.AddCell().Value = review.ASIN
+		row.AddCell().Value = review.CustomerNo
+		row.AddCell().Value = review.StripInfo
+		row.AddCell().Value = strconv.Itoa(int(review.Rating))
+		row.AddCell().Value = strconv.FormatBool(review.IsVerified)
+		row.AddCell().Value = review.Location
+		row.AddCell().Value = review.CustomerName
+		row.AddCell().Value = review.CreatedOn.Format("01/02/2006")
+		row.AddCell().Value = review.Title
+		row.AddCell().Value = review.Content
+	}
+
+	buffer := _bufferPool.GetBuffer()
+	defer _bufferPool.PutBuffer(buffer)
+
+	wb.Write(buffer)
+
+	ctx.SetContentType("application/octet-stream")
+	ctx.Response.Header.Add("Content-Disposition", fmt.Sprintf("attachment;filename=%s.xlsx", time.Now().Format("20060102-150405")))
+	ctx.Write(buffer.Bytes())
 }

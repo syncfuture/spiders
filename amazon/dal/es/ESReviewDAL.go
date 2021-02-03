@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"io"
+	"time"
 
 	"github.com/olivere/elastic/v7"
 	log "github.com/syncfuture/go/slog"
@@ -47,34 +48,30 @@ func (x *ESReviewDAL) GetReviews(in *model.ReviewQuery) (r *model.ReviewQueryRes
 	r = new(model.ReviewQueryResult)
 	// default
 	// searchService := x.esClient.Search().Index(_reviewIndex).
+	// Sort("AmazonID.keyword", false).
+	// Size(in.PageSize)
 	searchService := x.esClient.Scroll(_reviewIndex).
-		Sort("ID.keyword", false).
 		Size(in.PageSize)
 
-		// if in.Cursor != "" {
-		// 	searchService.SearchAfter(in.Cursor)
-		// }
 	if in.Cursor != "" {
+		// 	searchService.SearchAfter(in.Cursor)
 		searchService.ScrollId(in.Cursor)
 	}
 
 	filters := []elastic.Query{}
-	// if in.Marketplace != "" {
-	// 	filters = append(filters, elastic.NewMatchQuery("marketplace-id.keyword", strings.ToUpper(in.Marketplace)))
-	// }
+
 	if in.ASIN != "" {
 		filters = append(filters, elastic.NewMatchQuery("ASIN.keyword", in.ASIN))
 	}
 	if in.ItemNo != "" {
-		filters = append(filters, elastic.NewMatchQuery("ItemNo.keyword", in.ItemNo))
+		filters = append(filters, elastic.NewMatchQuery("CustomerNo.keyword", in.ItemNo))
 	}
-	// if in.From != "" {
-	// 	from, err := time.Parse(time.RFC3339, in.From)
-	// 	if err == nil {
-	// 		filters = append(filters, elastic.NewMatchQuery("ItemNo.keyword", in.ItemNo))
-	// 	}
-	// }
-	// filters = append(filters, elastic.NewBoolQuery().MustNot(elastic.NewExistsQuery("CustomerNo")))
+	if in.FromDate != "" {
+		fromDate, err := time.Parse("2006-01-02", in.FromDate)
+		if err == nil {
+			filters = append(filters, elastic.NewRangeQuery("CreatedOn").Gte(fromDate).TimeZone("US/Pacific"))
+		}
+	}
 
 	searchService.Query(elastic.NewBoolQuery().Filter(filters...))
 

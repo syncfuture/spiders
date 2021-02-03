@@ -31,7 +31,7 @@ const ItemListModel: IItemListModel = {
     state: {
         items: [],
         totalCount: 0,
-        pageSize: 10,
+        pageSize: 20,
         status: "",
         asin: "",
         itemNo: "",
@@ -54,7 +54,6 @@ const ItemListModel: IItemListModel = {
         *scrape({ _ }, { call, select }) {
             const state = yield select((x: any) => x["itemList"]);
             const query = {
-                pageSize: state.pageSize,
                 status: state.status,
                 asin: state.asin,
                 itemNo: state.itemNo,
@@ -67,7 +66,6 @@ const ItemListModel: IItemListModel = {
         *getItems({ _ }, { call, put, select }) {
             const state = (yield select((x: any) => x["itemList"])) as IItemListModelState;
             const query = {
-                pageSize: state.pageSize,
                 status: state.status,
                 asin: state.asin,
                 itemNo: state.itemNo,

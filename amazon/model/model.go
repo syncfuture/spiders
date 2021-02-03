@@ -27,8 +27,7 @@ type ReviewQuery struct {
 	Cursor   string
 	ASIN     string
 	ItemNo   string
-	From     string
-	To       string
+	FromDate string
 	PageSize int
 }
 

@@ -59,22 +59,22 @@ class ItemsPage<T extends IPageProps> extends React.Component<T> {
     });
   };
 
-  search = (values: any) => {
-    const { dispatch } = this.props;
-    dispatch({
-      type: 'itemList/search',
-      payload: {
-        ...values
-      },
-    });
-  };
-
   scrape = (values: any) => {
     const { dispatch } = this.props;
     dispatch({
       type: 'itemList/scrape',
       payload: {
         ...values
+      },
+    });
+  };
+
+  onShowSizeChange = (oldSize: number, newSize: number) => {
+    const { dispatch } = this.props;
+    dispatch({
+      type: 'itemList/setState',
+      payload: {
+        pageSize: newSize,
       },
     });
   };
@@ -105,7 +105,6 @@ class ItemsPage<T extends IPageProps> extends React.Component<T> {
       <div>
         <Card>
           <Form
-            name="basic"
             layout="inline"
             initialValues={{ status: model.status.toString() }}
             onFinish={this.getItems}
@@ -137,10 +136,13 @@ class ItemsPage<T extends IPageProps> extends React.Component<T> {
         <Table
           dataSource={model.items}
           columns={this._columns}
+          size="small"
           rowKey="ASIN"
           loading={loading}
           pagination={{
             total: model.totalCount,
+            pageSize: model.pageSize,
+            onShowSizeChange: this.onShowSizeChange,
             showTotal: (total, range) => `${range[0]}-${range[1]} of ${total} items`,
           }}
         // footer={() => <div> <Button type="link" onClick={this.loadMore}>Load more...</Button></div>}
