@@ -1,4 +1,4 @@
-module github.com/syncfuture/spiders/amazon
+module github.com/syncfuture/spiders
 
 go 1.15
 
