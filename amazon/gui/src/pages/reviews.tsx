@@ -139,6 +139,9 @@ class ReviewsPage<T extends IPageProps> extends React.Component<T> {
           <Form
             layout="inline"
             onFinish={this.getReviews}
+            initialValues={{
+              fromDate: moment(model.fromDate),
+            }}
           >
             <Form.Item name="asin">
               <Input placeholder="ASIN" onChange={this.onASINChanged} />
@@ -151,7 +154,6 @@ class ReviewsPage<T extends IPageProps> extends React.Component<T> {
             <Form.Item name="fromDate">
               <DatePicker
                 format={"MM/DD/YYYY"}
-                defaultValue={moment(model.fromDate)}
                 disabledDate={this.disabledDate}
                 onChange={this.onFromDateChanged}
               />

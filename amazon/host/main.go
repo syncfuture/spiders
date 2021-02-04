@@ -8,21 +8,22 @@ import (
 	"sync/atomic"
 	"time"
 
-	"github.com/buaazp/fasthttprouter"
+	"github.com/kataras/iris/v12"
+	"github.com/kataras/iris/v12/core/router"
+	"github.com/kataras/iris/v12/middleware/logger"
+	"github.com/kataras/iris/v12/middleware/recover"
 	"github.com/olivere/elastic/v7"
 	"github.com/syncfuture/go/sconfig"
 	log "github.com/syncfuture/go/slog"
 	"github.com/syncfuture/go/spool"
 	"github.com/syncfuture/go/stask"
 	"github.com/syncfuture/go/u"
-	"github.com/syncfuture/scraper/amazon"
 	"github.com/syncfuture/scraper/store"
 	"github.com/syncfuture/scraper/store/webshare"
+	"github.com/syncfuture/spiders/amazon"
 	"github.com/syncfuture/spiders/amazon/dal"
 	"github.com/syncfuture/spiders/amazon/dal/es"
-	"github.com/syncfuture/spiders/amazon/model"
 	"github.com/tealeg/xlsx"
-	"github.com/valyala/fasthttp"
 )
 
 const (
@@ -37,11 +38,13 @@ var (
 	_cp            sconfig.IConfigProvider
 	_listenAddr    string
 	_maxConcurrent int
+	_debug         bool
 	_bufferPool    = spool.NewSyncBufferPool(4096)
 )
 
 func init() {
 	_cp = sconfig.NewJsonConfigProvider()
+	_debug = _cp.GetBool("Debug")
 	log.Init(_cp)
 	_store = webshare.NewWebShareProxyStore(_key)
 	_listenAddr = _cp.GetStringDefault("ListenAddr", ":7000")
@@ -66,34 +69,45 @@ func main() {
 		return
 	}
 
-	router := fasthttprouter.New()
-	router.GET("/reviews", allowCORS(getReviews))
-	router.POST("/reviews/export", allowCORS(exportReviews))
-	router.OPTIONS("/reviews/export", allowCORS(options))
+	app := iris.New()
+	logLevel := _cp.GetStringDefault("Log.Level", "info")
+	app.Logger().SetLevel(logLevel)
+	app.Use(recover.New())
+	app.Use(logger.New())
 
-	router.GET("/items", allowCORS(getItems))
+	var api router.Party
 
-	router.POST("/scrape", allowCORS(scrape))
-	router.OPTIONS("/scrape", allowCORS(options))
+	if _debug {
+		// Debug mode
+		app.HandleDir("/", "./dist")
+		crs := func(ctx iris.Context) {
+			ctx.Header("Access-Control-Allow-Origin", "*")
+			ctx.Header("Access-Control-Allow-Credentials", "true")
+			ctx.Header("Access-Control-Allow-Methods", "DELETE")
+			ctx.Header("Access-Control-Allow-Headers", "Access-Control-Allow-Origin, Content-Type, x-requested-with")
+			ctx.Next()
+		}
 
-	log.Infof("Listen on %s", _listenAddr)
-	fasthttp.ListenAndServe(_listenAddr, router.Handler)
-}
-
-func allowCORS(next fasthttp.RequestHandler) fasthttp.RequestHandler {
-	return func(ctx *fasthttp.RequestCtx) {
-
-		ctx.Response.Header.Add("Access-Control-Allow-Origin", "*")
-		ctx.Response.Header.Add("Access-Control-Allow-Credentials", "true")
-		ctx.Response.Header.Add("Access-Control-Allow-Methods", "POST,OPTIONS,GET,PUT,DELETE")
-		ctx.Response.Header.Add("Access-Control-Allow-Headers", "Access-Control-Allow-Origin, Content-Type, x-requested-with")
-
-		next(ctx)
+		api = app.Party("/api", crs).AllowMethods(iris.MethodOptions)
+	} else {
+		// Production mode
+		app.HandleDir("/", "./dist", iris.DirOptions{
+			Asset:      Asset,
+			AssetInfo:  AssetInfo,
+			AssetNames: AssetNames,
+		})
+		api = app.Party("/api")
 	}
-}
-func options(ctx *fasthttp.RequestCtx) {}
 
-func getReviews(ctx *fasthttp.RequestCtx) {
+	api.Get("/reviews", getReviews)
+	api.Post("/reviews/export", exportReviews)
+	api.Get("/items", getItems)
+	api.Post("/scrape", scrape)
+
+	app.Run(iris.Addr(_listenAddr))
+}
+
+func getReviews(ctx iris.Context) {
 	query := getReviewQuery(ctx)
 	result, err := _reviewDAL.GetAllReviews(query)
 	if u.LogError(err) {
@@ -107,11 +121,11 @@ func getReviews(ctx *fasthttp.RequestCtx) {
 		return
 	}
 
-	ctx.Response.Header.SetContentType("application/json; charset=utf-8")
+	ctx.ContentType("application/json; charset=utf-8")
 	ctx.Write(json)
 }
 
-func getItems(ctx *fasthttp.RequestCtx) {
+func getItems(ctx iris.Context) {
 	query := getItemQuery(ctx)
 	items, err := _itemDAL.GetAllItems(query)
 	if u.LogError(err) {
@@ -125,11 +139,11 @@ func getItems(ctx *fasthttp.RequestCtx) {
 		return
 	}
 
-	ctx.Response.Header.SetContentType("application/json; charset=utf-8")
+	ctx.ContentType("application/json; charset=utf-8")
 	ctx.Write(json)
 }
 
-func scrape(ctx *fasthttp.RequestCtx) {
+func scrape(ctx iris.Context) {
 	_scrapeLocker.Lock()
 	defer _scrapeLocker.Unlock()
 
@@ -145,7 +159,7 @@ func scrape(ctx *fasthttp.RequestCtx) {
 
 	f := stask.NewFlowScheduler(_maxConcurrent)
 	f.SliceRun(&result.Items, func(i int, v interface{}) {
-		item := v.(*model.ItemDTO)
+		item := v.(*amazon.ItemDTO)
 
 		atomic.AddInt32(&count, 1)
 
@@ -180,12 +194,12 @@ func scrape(ctx *fasthttp.RequestCtx) {
 	// 	return
 	// }
 
-	ctx.Response.Header.SetContentType("application/json; charset=utf-8")
+	ctx.ContentType("application/json; charset=utf-8")
 	json := fmt.Sprintf(`{"count":%d}`, count)
 	ctx.WriteString(json)
 }
 
-func getItemQuery(ctx *fasthttp.RequestCtx) *model.ItemQuery {
+func getItemQuery(ctx iris.Context) *amazon.ItemQuery {
 	asin := string(ctx.FormValue("asin"))
 	itemNo := string(ctx.FormValue("itemNo"))
 	statusStr := string(ctx.FormValue("status"))
@@ -196,7 +210,7 @@ func getItemQuery(ctx *fasthttp.RequestCtx) *model.ItemQuery {
 		pageSize = 10000
 	}
 
-	return &model.ItemQuery{
+	return &amazon.ItemQuery{
 		Status:   statusStr,
 		PageSize: pageSize,
 		Cursor:   cursor,
@@ -205,7 +219,7 @@ func getItemQuery(ctx *fasthttp.RequestCtx) *model.ItemQuery {
 	}
 }
 
-func getReviewQuery(ctx *fasthttp.RequestCtx) *model.ReviewQuery {
+func getReviewQuery(ctx iris.Context) *amazon.ReviewQuery {
 	asin := string(ctx.FormValue("asin"))
 	itemNo := string(ctx.FormValue("itemNo"))
 	pageSizeStr := string(ctx.FormValue("pageSize"))
@@ -216,7 +230,7 @@ func getReviewQuery(ctx *fasthttp.RequestCtx) *model.ReviewQuery {
 		pageSize = 10000
 	}
 
-	return &model.ReviewQuery{
+	return &amazon.ReviewQuery{
 		PageSize: pageSize,
 		Cursor:   cursor,
 		ASIN:     asin,
@@ -225,7 +239,7 @@ func getReviewQuery(ctx *fasthttp.RequestCtx) *model.ReviewQuery {
 	}
 }
 
-func exportReviews(ctx *fasthttp.RequestCtx) {
+func exportReviews(ctx iris.Context) {
 	query := getReviewQuery(ctx)
 	result, err := _reviewDAL.GetAllReviews(query)
 	if u.LogError(err) {
@@ -272,7 +286,7 @@ func exportReviews(ctx *fasthttp.RequestCtx) {
 
 	wb.Write(buffer)
 
-	ctx.SetContentType("application/octet-stream")
-	ctx.Response.Header.Add("Content-Disposition", fmt.Sprintf("attachment;filename=%s.xlsx", time.Now().Format("20060102-150405")))
+	ctx.ContentType("application/octet-stream")
+	ctx.Header("Content-Disposition", fmt.Sprintf("attachment;filename=%s.xlsx", time.Now().Format("20060102-150405")))
 	ctx.Write(buffer.Bytes())
 }

@@ -8,7 +8,7 @@ import (
 	"github.com/olivere/elastic/v7"
 	"github.com/stretchr/testify/assert"
 	"github.com/syncfuture/go/u"
-	"github.com/syncfuture/spiders/amazon/model"
+	"github.com/syncfuture/spiders/amazon"
 	"github.com/tealeg/xlsx"
 )
 
@@ -26,7 +26,7 @@ func TestESItemDAL_ImportItems(t *testing.T) {
 	}
 
 	sheet := excel.Sheets[0]
-	items := make([]*model.ItemDTO, 0, len(sheet.Rows))
+	items := make([]*amazon.ItemDTO, 0, len(sheet.Rows))
 	for i, row := range sheet.Rows {
 		if i <= 1 {
 			continue
@@ -36,7 +36,7 @@ func TestESItemDAL_ImportItems(t *testing.T) {
 			text := cell.String()
 			strs = append(strs, text)
 		}
-		items = append(items, &model.ItemDTO{
+		items = append(items, &amazon.ItemDTO{
 			ItemNo: strings.TrimSpace(strs[1]),
 			ASIN:   strings.TrimSpace(strs[3]),
 		})
@@ -54,7 +54,7 @@ func TestESItemDAL_GetItems(t *testing.T) {
 		return
 	}
 
-	rs, err := esDAL.GetItems(&model.ItemQuery{
+	rs, err := esDAL.GetItems(&amazon.ItemQuery{
 		ASIN:     "AAAAAAA",
 		ItemNo:   "Item0001",
 		PageSize: 10000,
@@ -72,7 +72,7 @@ func TestESItemDAL_GetAllItems(t *testing.T) {
 		return
 	}
 
-	rs, err := esDAL.GetAllItems(&model.ItemQuery{
+	rs, err := esDAL.GetAllItems(&amazon.ItemQuery{
 		// Status: -1,
 	})
 	u.LogError(err)
@@ -87,7 +87,7 @@ func TestESItemDAL_SaveItems(t *testing.T) {
 		return
 	}
 
-	err = esDAL.SaveItems(&model.ItemDTO{
+	err = esDAL.SaveItems(&amazon.ItemDTO{
 		ASIN:   "AAAAAAA",
 		ItemNo: "Item0001",
 		Status: 2,
@@ -103,7 +103,7 @@ func TestESItemDAL_DeleteItems(t *testing.T) {
 		return
 	}
 
-	err = esDAL.DeleteItems(&model.ItemDTO{
+	err = esDAL.DeleteItems(&amazon.ItemDTO{
 		ASIN:   "AAAAAAA",
 		Status: 2,
 	})
@@ -118,13 +118,13 @@ func TestESItemDAL_ResetToPending(t *testing.T) {
 		return
 	}
 
-	rs, err := esDAL.GetAllItems(&model.ItemQuery{
+	rs, err := esDAL.GetAllItems(&amazon.ItemQuery{
 		Status: "1",
 	})
 	u.LogError(err)
 	assert.NotEmpty(t, rs)
 
-	a := make([]*model.ItemDTO, 0, len(rs.Items))
+	a := make([]*amazon.ItemDTO, 0, len(rs.Items))
 	for _, x := range rs.Items {
 		x.Status = 0
 		a = append(a, x)

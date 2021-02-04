@@ -1,4 +1,5 @@
 import { getReviews } from '@/services/api';
+import u from '@/u';
 import moment from 'moment';
 import { Reducer, Effect } from 'umi';
 
@@ -59,7 +60,7 @@ const ReviewListModel: IReviewListModel = {
         },
         export(state: any, { _ }) {
             const f = document.createElement("form");
-            f.setAttribute("action", "http://localhost:7000/reviews/export/");
+            f.setAttribute("action", u.BaseURI() + "/reviews/export/");
             f.setAttribute("method", "post");
             f.setAttribute("target", "download");
             const asinInput = document.createElement("input");

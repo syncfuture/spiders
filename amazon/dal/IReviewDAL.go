@@ -1,12 +1,11 @@
 package dal
 
 import (
-	"github.com/syncfuture/scraper/amazon"
-	"github.com/syncfuture/spiders/amazon/model"
+	"github.com/syncfuture/spiders/amazon"
 )
 
 type IReviewDAL interface {
 	SaveReviews(reviews []*amazon.ReviewDTO) error
-	GetReviews(*model.ReviewQuery) (*model.ReviewQueryResult, error)
-	GetAllReviews(*model.ReviewQuery) (*model.ReviewQueryResult, error)
+	GetReviews(*amazon.ReviewQuery) (*amazon.ReviewQueryResult, error)
+	GetAllReviews(*amazon.ReviewQuery) (*amazon.ReviewQueryResult, error)
 }

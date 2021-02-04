@@ -9,9 +9,8 @@ import (
 	"github.com/olivere/elastic/v7"
 	log "github.com/syncfuture/go/slog"
 	"github.com/syncfuture/go/u"
-	"github.com/syncfuture/scraper/amazon"
+	"github.com/syncfuture/spiders/amazon"
 	"github.com/syncfuture/spiders/amazon/dal"
-	"github.com/syncfuture/spiders/amazon/model"
 )
 
 const _reviewIndex = "amazon-reviews"
@@ -44,8 +43,8 @@ func (x *ESReviewDAL) SaveReviews(reviews []*amazon.ReviewDTO) error {
 	return err
 }
 
-func (x *ESReviewDAL) GetReviews(in *model.ReviewQuery) (r *model.ReviewQueryResult, err error) {
-	r = new(model.ReviewQueryResult)
+func (x *ESReviewDAL) GetReviews(in *amazon.ReviewQuery) (r *amazon.ReviewQueryResult, err error) {
+	r = new(amazon.ReviewQueryResult)
 	// default
 	// searchService := x.esClient.Search().Index(_reviewIndex).
 	// Sort("AmazonID.keyword", false).
@@ -101,10 +100,10 @@ func (x *ESReviewDAL) GetReviews(in *model.ReviewQuery) (r *model.ReviewQueryRes
 	return
 }
 
-func (x *ESReviewDAL) GetAllReviews(in *model.ReviewQuery) (*model.ReviewQueryResult, error) {
+func (x *ESReviewDAL) GetAllReviews(in *amazon.ReviewQuery) (*amazon.ReviewQueryResult, error) {
 	in.PageSize = 10000
 
-	var r1, r2 *model.ReviewQueryResult
+	var r1, r2 *amazon.ReviewQueryResult
 	var err error
 	r1, err = x.GetReviews(in)
 	if err != nil {

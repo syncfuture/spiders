@@ -8,8 +8,8 @@ import (
 	"github.com/olivere/elastic/v7"
 	log "github.com/syncfuture/go/slog"
 	"github.com/syncfuture/go/u"
+	"github.com/syncfuture/spiders/amazon"
 	"github.com/syncfuture/spiders/amazon/dal"
-	"github.com/syncfuture/spiders/amazon/model"
 )
 
 const _itemIndex = "amazon-items"
@@ -25,8 +25,8 @@ func NewESItemDAL(options ...elastic.ClientOptionFunc) (dal.IItemDAL, error) {
 	return r, err
 }
 
-func (x *ESItemDAL) GetItems(in *model.ItemQuery) (r *model.ItemQueryResult, err error) {
-	r = new(model.ItemQueryResult)
+func (x *ESItemDAL) GetItems(in *amazon.ItemQuery) (r *amazon.ItemQueryResult, err error) {
+	r = new(amazon.ItemQueryResult)
 
 	// searchService := x.esClient.Search(_itemIndex).
 	searchService := x.esClient.Scroll(_itemIndex).
@@ -63,7 +63,7 @@ func (x *ESItemDAL) GetItems(in *model.ItemQuery) (r *model.ItemQueryResult, err
 	r.TotalCount = resp.TotalHits()
 
 	for _, value := range resp.Hits.Hits {
-		var doc *model.ItemDTO
+		var doc *amazon.ItemDTO
 		err = json.Unmarshal(value.Source, &doc)
 		if !u.LogError(err) {
 			r.Items = append(r.Items, doc)
@@ -79,10 +79,10 @@ func (x *ESItemDAL) GetItems(in *model.ItemQuery) (r *model.ItemQueryResult, err
 	return
 }
 
-func (x *ESItemDAL) GetAllItems(in *model.ItemQuery) (*model.ItemQueryResult, error) {
+func (x *ESItemDAL) GetAllItems(in *amazon.ItemQuery) (*amazon.ItemQueryResult, error) {
 	in.PageSize = 10000
 
-	var r1, r2 *model.ItemQueryResult
+	var r1, r2 *amazon.ItemQueryResult
 	var err error
 	r1, err = x.GetItems(in)
 	if err != nil {
@@ -106,7 +106,7 @@ func (x *ESItemDAL) GetAllItems(in *model.ItemQuery) (*model.ItemQueryResult, er
 	return r1, err
 }
 
-func (x *ESItemDAL) SaveItems(items ...*model.ItemDTO) error {
+func (x *ESItemDAL) SaveItems(items ...*amazon.ItemDTO) error {
 	bulkService := x.esClient.Bulk().Index(_itemIndex)
 
 	for _, item := range items {
@@ -123,7 +123,7 @@ func (x *ESItemDAL) SaveItems(items ...*model.ItemDTO) error {
 	return err
 }
 
-// func (x *ESItemDAL) SaveItem(item *model.ItemDTO) error {
+// func (x *ESItemDAL) SaveItem(item *amazon.ItemDTO) error {
 // 	updateService := x.esClient.Update().Index(_itemIndex).
 // 		Id(item.ASIN).
 // 		Type("items").
@@ -137,7 +137,7 @@ func (x *ESItemDAL) SaveItems(items ...*model.ItemDTO) error {
 // 	return err
 // }
 
-func (x *ESItemDAL) DeleteItems(items ...*model.ItemDTO) error {
+func (x *ESItemDAL) DeleteItems(items ...*amazon.ItemDTO) error {
 	bulkService := x.esClient.Bulk().Index(_itemIndex)
 
 	for _, item := range items {
