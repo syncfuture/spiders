@@ -9,8 +9,8 @@ const request = extend({
     // },
 });
 
-export async function getReviews(query: any) {
-    const r = await request.get('/reviews', {
+export async function amazonGetReviews(query: any) {
+    const r = await request.get('/amazon/reviews', {
         params: query,
     })
         .then(function (resp) {
@@ -23,8 +23,8 @@ export async function getReviews(query: any) {
     return r;
 }
 
-export async function getItems(query: any) {
-    const r = await request.get('/items', {
+export async function amazonGetItems(query: any) {
+    const r = await request.get('/amazon/items', {
         params: query,
     })
         .then(function (resp) {
@@ -37,8 +37,8 @@ export async function getItems(query: any) {
     return r;
 }
 
-export function startScrape(args: any) {
-    request.post('/scrape', {
+export function amazonScrape(args: any) {
+    request.post('/amazon/scrape', {
         data: args,
         requestType: "form",
     })

@@ -6,17 +6,17 @@ export default defineConfig({
   nodeModulesTransform: {
     type: 'none',
   },
-  routes: [
-    {
-      path: '/',
-      component: '@/_layout',
-      routes: [
-        { path: '/', component: '@/pages/index' },
-        { path: '/reviews', component: '@/pages/reviews' },
-        { path: '/items', component: '@/pages/items' },
-      ]
-    },
-  ],
+  // routes: [
+  //   {
+  //     path: '/',
+  //     component: '@/_layout'
+  //     // routes: [
+  //     //   { path: '/', component: '@/pages/index' },
+  //     //   { path: '/amazon/reviews', component: '@/pages/reviews' },
+  //     //   { path: '/amazon/items', component: '@/pages/items' },
+  //     // ]
+  //   },
+  // ],
   fastRefresh: {},
   antd: {
     dark: false,

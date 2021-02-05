@@ -1,5 +1,5 @@
 import React from 'react'
-import { Table, Divider, Select, Button, Input, Form, Card } from 'antd';
+import { Table, Select, Button, Input, Form, Card } from 'antd';
 import { connect, IItemListModelState, Dispatch, Loading } from 'umi';
 
 const { Option } = Select;
@@ -103,7 +103,15 @@ class ItemsPage<T extends IPageProps> extends React.Component<T> {
     const { model, loading } = this.props
     return (
       <div>
-        <Card>
+        {/* <Card>
+          <Breadcrumb>
+            <Breadcrumb.Item>Home</Breadcrumb.Item>
+            <Breadcrumb.Item>Amazon</Breadcrumb.Item>
+            <Breadcrumb.Item>Items</Breadcrumb.Item>
+          </Breadcrumb>
+        </Card> */}
+
+        <Card style={{ margin: "5px 0" }}>
           <Form
             layout="inline"
             initialValues={{ status: model.status.toString() }}

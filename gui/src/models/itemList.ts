@@ -1,4 +1,4 @@
-import { getItems, startScrape } from '@/services/api';
+import { amazonGetItems, amazonScrape } from '@/services/api';
 import { message } from 'antd'
 import { Reducer, Effect } from 'umi';
 
@@ -59,7 +59,7 @@ const ItemListModel: IItemListModel = {
                 itemNo: state.itemNo,
             };
 
-            yield call(startScrape, query);
+            yield call(amazonScrape, query);
 
             message.success("reviews scraping started");
         },
@@ -70,7 +70,7 @@ const ItemListModel: IItemListModel = {
                 asin: state.asin,
                 itemNo: state.itemNo,
             };
-            const resp = yield call(getItems, query);
+            const resp = yield call(amazonGetItems, query);
             yield put({ type: 'setState', payload: { items: resp.Items ?? [], totalCount: resp.TotalCount } });
         },
         // *loadMore({ _ }, { call, put, select }) {

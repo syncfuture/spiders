@@ -1,4 +1,4 @@
-import { getReviews } from '@/services/api';
+import { amazonGetReviews } from '@/services/api';
 import u from '@/u';
 import moment from 'moment';
 import { Reducer, Effect } from 'umi';
@@ -47,7 +47,7 @@ const ReviewListModel: IReviewListModel = {
                 itemNo: state.itemNo,
                 fromDate: state.fromDate,
             };
-            const reviews = yield call(getReviews, query);
+            const reviews = yield call(amazonGetReviews, query);
             yield put({ type: 'setState', payload: { reviews } });
         },
     },
@@ -60,7 +60,7 @@ const ReviewListModel: IReviewListModel = {
         },
         export(state: any, { _ }) {
             const f = document.createElement("form");
-            f.setAttribute("action", u.BaseURI() + "/reviews/export/");
+            f.setAttribute("action", u.BaseURI() + "/amazon/reviews/export/");
             f.setAttribute("method", "post");
             f.setAttribute("target", "download");
             const asinInput = document.createElement("input");

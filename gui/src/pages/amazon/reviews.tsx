@@ -135,7 +135,7 @@ class ReviewsPage<T extends IPageProps> extends React.Component<T> {
     const { model, loading } = this.props
     return (
       <div>
-        <Card>
+        <Card style={{ margin: "5px 0" }}>
           <Form
             layout="inline"
             onFinish={this.getReviews}

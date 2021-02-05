@@ -1,5 +1,5 @@
 {
-    "Debug": false,
+    "Debug": true,
     "Log": {
         "Level": "debug",
         "DetailLevel": "warn"
