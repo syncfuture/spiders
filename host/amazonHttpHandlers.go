@@ -21,6 +21,10 @@ import (
 	"github.com/tealeg/xlsx"
 )
 
+const (
+	_notFoundError = "404 Not Found"
+)
+
 type amazonHttpHandlers struct {
 	configProvier sconfig.IConfigProvider
 	reviewDAL     dal.IReviewDAL
@@ -114,7 +118,11 @@ func (x *amazonHttpHandlers) PostScrape(ctx iris.Context) {
 		s := amazon.NewReviewsScraper(x.proxyStore, item.ASIN)
 		reviews, err := s.FetchPages(&fromDate)
 		if u.LogError(err) {
-			item.Status = -1
+			if err.Error() == _notFoundError {
+				item.Status = 404
+			} else {
+				item.Status = -1
+			}
 			x.itemDAL.SaveItems(item)
 			return
 		}
