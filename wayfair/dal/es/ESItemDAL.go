@@ -8,8 +8,8 @@ import (
 	"github.com/olivere/elastic/v7"
 	log "github.com/syncfuture/go/slog"
 	"github.com/syncfuture/go/u"
-	"github.com/syncfuture/spiders/wayfair"
 	"github.com/syncfuture/spiders/wayfair/dal"
+	"github.com/syncfuture/spiders/wayfair/model"
 )
 
 const _itemIndex = "wayfair-items"
@@ -25,8 +25,8 @@ func NewESItemDAL(options ...elastic.ClientOptionFunc) (dal.IItemDAL, error) {
 	return r, err
 }
 
-func (x *ESItemDAL) GetItems(in *wayfair.ItemQuery) (r *wayfair.ItemQueryResult, err error) {
-	r = new(wayfair.ItemQueryResult)
+func (x *ESItemDAL) GetItems(in *model.ItemQuery) (r *model.ItemQueryResult, err error) {
+	r = new(model.ItemQueryResult)
 
 	// searchService := x.esClient.Search(_itemIndex).
 	searchService := x.esClient.Scroll(_itemIndex).
@@ -63,7 +63,7 @@ func (x *ESItemDAL) GetItems(in *wayfair.ItemQuery) (r *wayfair.ItemQueryResult,
 	r.TotalCount = resp.TotalHits()
 
 	for _, value := range resp.Hits.Hits {
-		var doc *wayfair.ItemDTO
+		var doc *model.ItemDTO
 		err = json.Unmarshal(value.Source, &doc)
 		if !u.LogError(err) {
 			r.Items = append(r.Items, doc)
@@ -79,10 +79,10 @@ func (x *ESItemDAL) GetItems(in *wayfair.ItemQuery) (r *wayfair.ItemQueryResult,
 	return
 }
 
-func (x *ESItemDAL) GetAllItems(in *wayfair.ItemQuery) (*wayfair.ItemQueryResult, error) {
+func (x *ESItemDAL) GetAllItems(in *model.ItemQuery) (*model.ItemQueryResult, error) {
 	in.PageSize = 10000
 
-	var r1, r2 *wayfair.ItemQueryResult
+	var r1, r2 *model.ItemQueryResult
 	var err error
 	r1, err = x.GetItems(in)
 	if err != nil {
@@ -106,7 +106,7 @@ func (x *ESItemDAL) GetAllItems(in *wayfair.ItemQuery) (*wayfair.ItemQueryResult
 	return r1, err
 }
 
-func (x *ESItemDAL) SaveItems(items ...*wayfair.ItemDTO) error {
+func (x *ESItemDAL) SaveItems(items ...*model.ItemDTO) error {
 	bulkService := x.esClient.Bulk().Index(_itemIndex)
 
 	for _, item := range items {
@@ -123,7 +123,7 @@ func (x *ESItemDAL) SaveItems(items ...*wayfair.ItemDTO) error {
 	return err
 }
 
-// func (x *ESItemDAL) SaveItem(item *wayfair.ItemDTO) error {
+// func (x *ESItemDAL) SaveItem(item *model.ItemDTO) error {
 // 	updateService := x.esClient.Update().Index(_itemIndex).
 // 		Id(item.SKU).
 // 		Type("items").
@@ -137,7 +137,7 @@ func (x *ESItemDAL) SaveItems(items ...*wayfair.ItemDTO) error {
 // 	return err
 // }
 
-func (x *ESItemDAL) DeleteItems(items ...*wayfair.ItemDTO) error {
+func (x *ESItemDAL) DeleteItems(items ...*model.ItemDTO) error {
 	bulkService := x.esClient.Bulk().Index(_itemIndex)
 
 	for _, item := range items {

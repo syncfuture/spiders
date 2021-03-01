@@ -2,5 +2,12 @@
     "Log": {
         "Level": "debug",
         "DetailLevel": "warn"
+    },
+    "MacChromeCMD": "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome",
+    "WinChromeCMD": "C:/Users/Lukiya/AppData/Local/Google/Chrome/Application/chrome.exe",
+    "Timeout": 60000,
+    "Redis": {
+        "Addrs": ["192.168.188.200:6379"],
+        "Password": "Famous901"
     }
 }

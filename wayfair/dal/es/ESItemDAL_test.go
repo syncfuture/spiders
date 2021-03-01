@@ -7,10 +7,8 @@ import (
 	"testing"
 
 	"github.com/olivere/elastic/v7"
-	"github.com/syncfuture/go/sconfig"
-	log "github.com/syncfuture/go/slog"
 	"github.com/syncfuture/go/u"
-	"github.com/syncfuture/spiders/wayfair"
+	"github.com/syncfuture/spiders/wayfair/model"
 	"github.com/tealeg/xlsx"
 )
 
@@ -23,9 +21,6 @@ var (
 )
 
 func TestImport(t *testing.T) {
-	cp := sconfig.NewJsonConfigProvider()
-	log.Init(cp)
-
 	excel, err := xlsx.OpenFile("./data.xlsx")
 	if err != nil {
 		fmt.Printf("open failed: %s\n", err)
@@ -33,7 +28,7 @@ func TestImport(t *testing.T) {
 
 	sheet := excel.Sheets[0]
 
-	wfSKUs := make([]string, 0, len(sheet.Rows))
+	wfSKUs := make(map[string]string, len(sheet.Rows))
 
 	for i, row := range sheet.Rows {
 		if i < 1 {
@@ -42,8 +37,10 @@ func TestImport(t *testing.T) {
 
 		status := strings.TrimSpace(row.Cells[6].Value)
 		wfFamilyID := strings.TrimSpace(row.Cells[8].Value)
-		if wfFamilyID != "" && wfFamilyID != "N/A" && (status == "Active" || status == "Live Product") {
-			wfSKUs = append(wfSKUs, wfFamilyID)
+		eecItemNo := strings.TrimSpace(row.Cells[0].Value)
+		if (eecItemNo != "" && eecItemNo != "N/A") && (wfFamilyID != "" && wfFamilyID != "N/A") && (status == "Active" || status == "Live Product") {
+			itemsStr := wfSKUs[wfFamilyID]
+			wfSKUs[wfFamilyID] = itemsStr + "," + eecItemNo
 		}
 		//  else {
 		// 	log.Warnf("[%d] has empty family id", i)
@@ -52,15 +49,15 @@ func TestImport(t *testing.T) {
 
 	// assert.Equal(t, len(sheet.Rows)-1, len(wfFamilyIDs))
 
-	wfSKUs = removeDuplicatedValues(wfSKUs)
-	log.Info(len(wfSKUs))
+	// wfSKUs = removeDuplicatedValues(wfSKUs)
+	// log.Info(len(wfSKUs))
 
-	wfItems := make([]*wayfair.ItemDTO, 0, len(wfSKUs))
+	wfItems := make([]*model.ItemDTO, 0, len(wfSKUs))
 
-	for _, sku := range wfSKUs {
-		wfItems = append(wfItems, &wayfair.ItemDTO{
-			// ItemNo: "",
-			SKU: sku,
+	for k, v := range wfSKUs {
+		wfItems = append(wfItems, &model.ItemDTO{
+			SKU:   k,
+			Items: v,
 		})
 	}
 

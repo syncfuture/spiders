@@ -1,28 +1,26 @@
-package wayfair
+package model
 
 import (
 	"time"
 )
 
 type ItemDTO struct {
-	// ItemNo string
+	Items  string
 	SKU    string
+	URL    string
 	Status int
 }
 
 type ReviewDTO struct {
-	// ID           string
-	AmazonID     string
-	CustomerNo   string
-	SKU          string
-	Location     string
-	CustomerName string
-	Title        string
-	Content      string
-	StripInfo    string
-	IsVerified   bool
-	Rating       float32
-	CreatedOn    *time.Time
+	SKU      string
+	Items    string
+	Comments string
+	Rating   string
+	Date     time.Time
+	Photos   []string
+	Name     string
+	Badge    string
+	Helpful  int
 }
 
 type ItemQuery struct {
@@ -56,6 +54,5 @@ type ReviewQueryResult struct {
 }
 
 type ReviewResult struct {
-	Reviews     []*ReviewDTO
-	NextPageURL string
+	Reviews []*ReviewDTO
 }

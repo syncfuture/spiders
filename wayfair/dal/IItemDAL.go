@@ -1,11 +1,11 @@
 package dal
 
-import "github.com/syncfuture/spiders/wayfair"
+import "github.com/syncfuture/spiders/wayfair/model"
 
 type IItemDAL interface {
-	GetItems(in *wayfair.ItemQuery) (*wayfair.ItemQueryResult, error)
-	GetAllItems(in *wayfair.ItemQuery) (r *wayfair.ItemQueryResult, err error)
-	SaveItems(...*wayfair.ItemDTO) error
-	// SaveItem(*wayfair.ItemDTO) error
-	DeleteItems(...*wayfair.ItemDTO) error
+	GetItems(in *model.ItemQuery) (*model.ItemQueryResult, error)
+	GetAllItems(in *model.ItemQuery) (r *model.ItemQueryResult, err error)
+	SaveItems(...*model.ItemDTO) error
+	// SaveItem(*model.ItemDTO) error
+	DeleteItems(...*model.ItemDTO) error
 }
