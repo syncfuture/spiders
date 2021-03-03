@@ -54,6 +54,8 @@ func TestGetReviews(t *testing.T) {
 	scraper := NewReviewsScraper(client)
 	from := time.Now().Add(time.Hour * 24 * -30)
 
+	// scraper.FetchReviews(&model.ItemDTO{SKU: "fssx4862"}, from) // fssx4862 截至没有评论3/3/2021
+
 	for _, item := range rs.Items {
 		reviews, err := scraper.FetchReviews(item, from)
 		if !u.LogError(err) {

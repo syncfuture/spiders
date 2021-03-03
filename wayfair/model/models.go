@@ -1,5 +1,7 @@
 package model
 
+import "time"
+
 type ItemDTO struct {
 	Items  string
 	SKU    string
@@ -86,6 +88,7 @@ type ReviewDTO struct {
 	CustomerPhotos             []*ReviewPhoto `json:"customerPhotos,omitempty"`
 	SKU                        string
 	Items                      string
+	CreatedOnUTC               time.Time
 }
 type ReviewPhoto struct {
 	Index     int    `json:"idx,omitempty"`

@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"regexp"
+	"strconv"
 	"strings"
 	"time"
 
@@ -19,13 +20,14 @@ import (
 )
 
 const (
-	_expError  = "ERR_INVALID_AUTH_CREDENTIALS"
+	// _expError   = "ERR_INVALID_AUTH_CREDENTIALS"
+	// _retryError = "ERR_TOO_MANY_RETRIES"
 	_urlFormat = "https://www.wayfair.com/category/pdp/product-%s.html"
 	_ajaxURL   = "https://www.wayfair.com/graphql?hash="
 )
 
 var (
-	_helpfulRegex = regexp.MustCompile(`\d+`)
+	_reviewCountRegex = regexp.MustCompile(`(\d+) Reviews`)
 )
 
 type skuBase struct {
@@ -103,9 +105,10 @@ func (x *ReviewsScraper) FetchReviews(item *model.ItemDTO, from time.Time) (r []
 		}
 		err := scdp.NavigateWithAuth(mainCtx, url, 1920, 936)
 		if err != nil {
-			if strings.Contains(err.Error(), _expError) {
-				proxy.Expired = true
-			}
+			// if strings.Contains(err.Error(), _expError) || strings.Contains(err.Error(), _retryError) {
+			// 	proxy.Expired = true
+			// }
+			proxy.Expired = true // 导航失败，直接视作代理池过期
 			return err
 		}
 
@@ -117,26 +120,39 @@ func (x *ReviewsScraper) FetchReviews(item *model.ItemDTO, from time.Time) (r []
 			return err
 		}
 
-		// 更新item的URL
-		chromedp.Run(mainCtx,
-			chromedp.Location(&item.URL),
+		var reviewStats string
+		err = chromedp.Run(mainCtx,
+			chromedp.Location(&item.URL), // 更新item的URL
+			chromedp.WaitVisible(".ReviewStats", chromedp.ByQuery),
+			chromedp.Text(".ReviewStats", &reviewStats, chromedp.ByQuery), // 获取评论数
 		)
+		if u.LogError(err) {
+			return err
+		}
+		reviewStatsMatches := _reviewCountRegex.FindStringSubmatch(reviewStats)
+		if len(reviewStatsMatches) < 2 {
+			// 没有评论，不做后续处理
+			return nil
+		}
+		count, err := strconv.Atoi(reviewStatsMatches[1])
+		if u.LogError(err) {
+			return err
+		} else if count <= 0 {
+			// 没有评论，不做后续处理
+			return nil
+		}
 
-		// 检查是否有评论排序下拉列表
-		sortDDLNodes := scdp.GetNodesWithAuth(mainCtx, ".ReviewsSearchSortFilter-dropdown")
-		if len(sortDDLNodes) > 0 {
-			// 选择评论按时间排序，等待评论加载完毕
-			err = chromedp.Run(mainCtx,
-				chromedp.WaitVisible(`.ReviewsSearchSortFilter-dropdown`, chromedp.ByQuery),
-				chromedp.Click(`.ReviewsSearchSortFilter-dropdown`, chromedp.ByQuery),
-				chromedp.WaitVisible(`#productReviewsSubheaderDropdown-item-2`, chromedp.ByQuery),
-				chromedp.Click(`#productReviewsSubheaderDropdown-item-2`, chromedp.ByQuery),
-				chromedp.WaitVisible(`div.ProductReviewList-links`, chromedp.ByQuery),
-			)
-			if err != nil {
-				log.Debug(err)
-				return nil // 排序下拉列表相关错误不需要返回
-			}
+		// 选择评论按时间排序，等待评论加载完毕
+		err = chromedp.Run(mainCtx,
+			chromedp.WaitVisible(`.ReviewsSearchSortFilter-dropdown`, chromedp.ByQuery),
+			chromedp.Click(`.ReviewsSearchSortFilter-dropdown`, chromedp.ByQuery),
+			chromedp.WaitVisible(`#productReviewsSubheaderDropdown-item-2`, chromedp.ByQuery),
+			chromedp.Click(`#productReviewsSubheaderDropdown-item-2`, chromedp.ByQuery),
+			chromedp.WaitVisible(`div.ProductReviewList-links`, chromedp.ByQuery),
+		)
+		if err != nil {
+			log.Debug(err)
+			return nil // 排序下拉列表相关错误不需要返回
 		}
 
 		for loadReviews(mainCtx, from) { // 循环点击加载更多按钮
@@ -188,7 +204,8 @@ func captureReviewsFromAjax(ev interface{}, mainCtx context.Context, item *model
 					log.Errorf("%d parse date failed: %s", review.ReviewID, err.Error())
 					continue
 				}
-				if date.After(from) {
+				review.CreatedOnUTC = date.UTC()
+				if review.CreatedOnUTC.After(from.UTC()) {
 					review.SKU = item.SKU
 					review.Items = item.Items
 					(*dic)[review.ReviewID] = review // 添加进结果

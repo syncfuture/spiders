@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"io"
+	"strconv"
 
 	"github.com/olivere/elastic/v7"
 	log "github.com/syncfuture/go/slog"
@@ -30,7 +31,7 @@ func (x *ESReviewDAL) GetReviews(in *model.ReviewQuery) (r *model.ReviewQueryRes
 
 	// searchService := x.esClient.Search(_reviewIndex).
 	searchService := x.esClient.Scroll(_reviewIndex).
-		Sort("SKU.keyword", false).
+		Sort("ReviewID", false).
 		Size(in.PageSize)
 
 	// if in.Cursor != "" {
@@ -107,7 +108,7 @@ func (x *ESReviewDAL) SaveReviews(reviews ...*model.ReviewDTO) error {
 	bulkService := x.esClient.Bulk().Index(_reviewIndex)
 
 	for _, review := range reviews {
-		request := elastic.NewBulkIndexRequest().Id(review.SKU).Doc(review)
+		request := elastic.NewBulkIndexRequest().Id(strconv.Itoa(review.ReviewID)).Doc(review)
 		bulkService.Add(request)
 	}
 
@@ -120,25 +121,11 @@ func (x *ESReviewDAL) SaveReviews(reviews ...*model.ReviewDTO) error {
 	return err
 }
 
-// func (x *ESReviewDAL) SaveReview(review *model.ReviewDTO) error {
-// 	updateService := x.esClient.Update().Index(_reviewIndex).
-// 		Id(review.SKU).
-// 		Type("reviews").
-// 		Doc(map[string]interface{}{"Status": review.Status})
-// 	resp, err := updateService.Do(context.Background())
-// 	if err != nil {
-// 		return err
-// 	} else {
-// 		log.Debug(resp.Result)
-// 	}
-// 	return err
-// }
-
 func (x *ESReviewDAL) DeleteReviews(reviews ...*model.ReviewDTO) error {
 	bulkService := x.esClient.Bulk().Index(_reviewIndex)
 
 	for _, review := range reviews {
-		request := elastic.NewBulkDeleteRequest().Id(review.SKU)
+		request := elastic.NewBulkDeleteRequest().Id(strconv.Itoa(review.ReviewID))
 		bulkService.Add(request)
 	}
 
