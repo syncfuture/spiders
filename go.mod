@@ -5,6 +5,7 @@ go 1.16
 require (
 	github.com/PuerkitoBio/goquery v1.6.1
 	github.com/ajg/form v1.5.1 // indirect
+	github.com/chromedp/cdproto v0.0.0-20210227213635-aabfe75e3e09
 	github.com/chromedp/chromedp v0.6.6
 	github.com/google/go-querystring v1.0.0 // indirect
 	github.com/imkira/go-interpol v1.1.0 // indirect
@@ -16,9 +17,9 @@ require (
 	github.com/smartystreets/goconvey v1.6.4 // indirect
 	github.com/stretchr/testify v1.7.0
 	github.com/syncfuture/go v1.4.0
-	github.com/syncfuture/scraper v1.2.2
+	github.com/syncfuture/scraper v1.3.0
 	github.com/tealeg/xlsx v1.0.5
-	github.com/valyala/fasthttp v1.21.0 // indirect
+	github.com/valyala/fasthttp v1.22.0 // indirect
 	github.com/xeipuuv/gojsonschema v1.2.0 // indirect
 	github.com/yalp/jsonpath v0.0.0-20180802001716-5cc68e5049a0 // indirect
 	github.com/yudai/gojsondiff v1.0.0 // indirect

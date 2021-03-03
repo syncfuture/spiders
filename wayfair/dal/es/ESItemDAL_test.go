@@ -57,12 +57,13 @@ func TestImport(t *testing.T) {
 	for k, v := range wfSKUs {
 		wfItems = append(wfItems, &model.ItemDTO{
 			SKU:   k,
-			Items: v,
+			Items: v + ",",
 		})
 	}
 
 	esDAL, err := NewESItemDAL(
-		elastic.SetURL("http://192.168.188.200:9200"),
+		elastic.SetURL("http://sa:Famous901@localhost:9200"),
+		elastic.SetSniff(false),
 	)
 	if u.LogError(err) {
 		return

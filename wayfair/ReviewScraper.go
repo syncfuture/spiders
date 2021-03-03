@@ -2,24 +2,26 @@ package wayfair
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"regexp"
-	"strconv"
 	"strings"
 	"time"
 
+	"github.com/chromedp/cdproto/cdp"
+	"github.com/chromedp/cdproto/network"
 	"github.com/chromedp/chromedp"
 
-	"github.com/syncfuture/go/sconfig"
 	log "github.com/syncfuture/go/slog"
+	"github.com/syncfuture/go/u"
 	"github.com/syncfuture/scraper/scdp"
-	"github.com/syncfuture/scraper/store"
 	"github.com/syncfuture/spiders/wayfair/model"
 )
 
 const (
 	_expError  = "ERR_INVALID_AUTH_CREDENTIALS"
-	_urlFormat = "https://www.wayfair.com/bed-bath/pdp/product-%s.html"
+	_urlFormat = "https://www.wayfair.com/category/pdp/product-%s.html"
+	_ajaxURL   = "https://www.wayfair.com/graphql?hash="
 )
 
 var (
@@ -27,9 +29,8 @@ var (
 )
 
 type skuBase struct {
-	Item       *model.ItemDTO
-	ProxyStore store.IProxyStore
-	CDPClient  *scdp.ChromeDPClient
+	// Item      *model.ItemDTO
+	CDPClient *scdp.ChromeDPClient
 }
 
 type ReviewsScraper struct {
@@ -37,122 +38,174 @@ type ReviewsScraper struct {
 	// PageInfo *PageInfo
 }
 
-func NewReviewsScraper(cp sconfig.IConfigProvider, proxyStore store.IProxyStore, item *model.ItemDTO) (r *ReviewsScraper) {
+func NewReviewsScraper(client *scdp.ChromeDPClient) (r *ReviewsScraper) {
 	r = new(ReviewsScraper)
-	r.ProxyStore = proxyStore
-	r.Item = item
-	r.CDPClient = scdp.NewChromeDPClient(cp)
+	// r.Item = item
+	r.CDPClient = client
 	return
 }
 
-func (x *ReviewsScraper) FetchReviews() (reviews []*model.ReviewDTO, err error) {
-	url := fmt.Sprintf(_urlFormat, x.Item.SKU)
-	proxy := x.ProxyStore.Lease()
-	defer x.ProxyStore.Return(proxy)
+func (x *ReviewsScraper) FetchReviews(item *model.ItemDTO, from time.Time) (r []*model.ReviewDTO, err error) {
+	dic := make(map[int]*model.ReviewDTO)
+	proxy := x.CDPClient.ProxyStore.Lease()
 
-	proxyURL := proxy.ToURL(false).String()
-	x.CDPClient.FetchWithProxy(proxyURL, func(ctx context.Context) {
+	err = x.CDPClient.FetchWithProxy(proxy.ToURL(true), func(mainCtx context.Context) error {
+		// 监听ajax事件，获取评论
+		chromedp.ListenTarget(mainCtx, func(ev interface{}) {
+			go captureReviewsFromAjax(ev, mainCtx, item, from, &dic)
+		})
+		// chromedp.ListenTarget(mainCtx, func(ev interface{}) {
+		// 	go func() {
+		// 		switch ev := ev.(type) {
+
+		// 		case *network.EventResponseReceived:
+		// 			if ev.Response.Status != 200 || !strings.Contains(ev.Response.URL, _ajaxURL) {
+		// 				return
+		// 			}
+		// 			c := chromedp.FromContext(mainCtx)
+		// 			data, err := network.GetResponseBody(ev.RequestID).Do(cdp.WithExecutor(mainCtx, c.Target))
+		// 			if u.LogError(err) {
+		// 				return
+		// 			}
+		// 			var resp *model.ReviewResp
+		// 			err = json.Unmarshal(data, &resp)
+		// 			if u.LogError(err) {
+		// 				return
+		// 			}
+
+		// 			if resp != nil && resp.Data != nil && resp.Data.Product != nil && resp.Data.Product.CustomerReviews != nil && len(resp.Data.Product.CustomerReviews.Reviews) > 0 {
+		// 				// reviews[]
+		// 				for _, review := range resp.Data.Product.CustomerReviews.Reviews {
+		// 					date, err := time.Parse("01/02/2006", review.Date)
+		// 					if err != nil {
+		// 						log.Errorf("%d parse date failed: %s", review.ReviewID, err.Error())
+		// 						continue
+		// 					}
+		// 					if date.After(from) {
+		// 						review.SKU = item.SKU
+		// 						review.Items = item.Items
+		// 						dic[review.ReviewID] = review
+		// 					}
+		// 				}
+		// 			}
+		// 		}
+		// 	}()
+		// 	// other needed network Event
+		// })
+
 		// client.FetchWithHead(func(ctx context.Context) {
 		// 跳转去产品页
-		err = scdp.Navigate(ctx, url, 1920, 936)
+		var url string
+		if item.URL == "" {
+			url = fmt.Sprintf(_urlFormat, item.SKU)
+		} else {
+			url = item.URL
+		}
+		err := scdp.NavigateWithAuth(mainCtx, url, 1920, 936)
 		if err != nil {
 			if strings.Contains(err.Error(), _expError) {
 				proxy.Expired = true
 			}
-			return
+			return err
 		}
 
 		// 检查是否被人机验证阻止
-		captchaNodes := scdp.GetNodes(ctx, "h1.Captcha-title")
+		captchaNodes := scdp.GetNodesWithAuth(mainCtx, "h1.Captcha-title")
 		if len(captchaNodes) > 0 {
 			log.Warnf("%s blocked by captcha", proxy.Host)
 			proxy.Blocked = true
-			return
+			return err
 		}
 
-		// 选择评论按时间排序，等待评论加载完毕
-		err = chromedp.Run(ctx,
-			chromedp.WaitVisible(`.ReviewsSearchSortFilter-dropdown`, chromedp.ByQuery),
-			chromedp.Click(`.ReviewsSearchSortFilter-dropdown`, chromedp.ByQuery),
-			chromedp.WaitVisible(`#productReviewsSubheaderDropdown-item-2`, chromedp.ByQuery),
-			chromedp.Click(`#productReviewsSubheaderDropdown-item-2`, chromedp.ByQuery),
-			chromedp.WaitVisible(`div.ProductReviewList-links`, chromedp.ByQuery),
+		// 更新item的URL
+		chromedp.Run(mainCtx,
+			chromedp.Location(&item.URL),
 		)
-		if err != nil {
-			log.Debug(err)
-			return
+
+		// 检查是否有评论排序下拉列表
+		sortDDLNodes := scdp.GetNodesWithAuth(mainCtx, ".ReviewsSearchSortFilter-dropdown")
+		if len(sortDDLNodes) > 0 {
+			// 选择评论按时间排序，等待评论加载完毕
+			err = chromedp.Run(mainCtx,
+				chromedp.WaitVisible(`.ReviewsSearchSortFilter-dropdown`, chromedp.ByQuery),
+				chromedp.Click(`.ReviewsSearchSortFilter-dropdown`, chromedp.ByQuery),
+				chromedp.WaitVisible(`#productReviewsSubheaderDropdown-item-2`, chromedp.ByQuery),
+				chromedp.Click(`#productReviewsSubheaderDropdown-item-2`, chromedp.ByQuery),
+				chromedp.WaitVisible(`div.ProductReviewList-links`, chromedp.ByQuery),
+			)
+			if err != nil {
+				log.Debug(err)
+				return nil // 排序下拉列表相关错误不需要返回
+			}
 		}
 
-		for loadReviews(ctx, time.Now().Add(time.Hour*24*-30)) { // 加载30天内的评论
+		for loadReviews(mainCtx, from) { // 循环点击加载更多按钮
 		}
 
-		// 获取页面上所有评论
-		timer := time.Now()
-		reviews = x.getReviews(ctx)
-		elapsed := time.Since(timer)
-		log.Infof("[%d] found %d reviews", elapsed.Milliseconds(), len(reviews))
+		log.Debugf("%s got %d reviews", url, len(dic))
+
+		return err
 	})
 
+	x.CDPClient.ProxyStore.Return(proxy)
+
 	if proxy.Blocked || proxy.Expired {
-		return x.FetchReviews() // 代理出问题，重试
-	}
-	return
-}
-
-func (x *ReviewsScraper) getReviews(ctx context.Context) (r []*model.ReviewDTO) {
-	reviewNodes := scdp.GetNodes(ctx, "article.ProductReview")
-	r = make([]*model.ReviewDTO, 0, len(reviewNodes))
-
-	for _, reviewNode := range reviewNodes {
-		dto := new(model.ReviewDTO)
-		dto.Items = x.Item.Items
-		dto.SKU = x.Item.SKU
-		// var photoNodes []*cdp.Node
-		// var date, helpful string
-		// chromedp.Run(ctx,
-		// 	chromedp.Text(`.ProductReview-reviewDetails .ProductReview-comments`, &dto.Comments, chromedp.ByQuery, chromedp.AtLeast(0), chromedp.FromNode(reviewNode)),
-		// 	chromedp.Text(`.ProductReview-reviewDetails .pl-ReviewStars`, &dto.Rating, chromedp.ByQuery, chromedp.AtLeast(0), chromedp.FromNode(reviewNode)),
-		// 	chromedp.Text(`.ProductReview-reviewDetails p[data-hb-id="pl-text"]`, &date, chromedp.ByQuery, chromedp.AtLeast(0), chromedp.FromNode(reviewNode)),
-		// 	chromedp.Text(`.ProductReview-customerInfo .ProductReviewCustomerInfo-name`, &dto.Name, chromedp.ByQuery, chromedp.AtLeast(0), chromedp.FromNode(reviewNode)),
-		// 	chromedp.Text(`.ProductReview-customerInfo .ProductReviewerComplianceBadge-tooltip`, &dto.Badge, chromedp.ByQuery, chromedp.AtLeast(0), chromedp.FromNode(reviewNode)),
-		// 	chromedp.Text(`.ProductReview-helpfulButton`, &helpful, chromedp.ByQuery, chromedp.AtLeast(0), chromedp.FromNode(reviewNode)),
-		// 	chromedp.Nodes(`.ProductReview-reviewPhotos .ProductReviewPhotos-item img`, &photoNodes, chromedp.ByQueryAll, chromedp.AtLeast(0), chromedp.FromNode(reviewNode)),
-		// )
-		// dto.Photos = getPhotos(photoNodes)
-		// dto.Helpful = getHelpful(helpful)
-		dto.Comments = scdp.GetText(ctx, ".ProductReview-reviewDetails .ProductReview-comments", chromedp.FromNode(reviewNode))
-		dto.Rating = scdp.GetText(ctx, ".ProductReview-reviewDetails .pl-ReviewStars", chromedp.FromNode(reviewNode))
-		date := scdp.GetText(ctx, `.ProductReview-reviewDetails p[data-hb-id="pl-text"]`, chromedp.FromNode(reviewNode))
-		dto.Date, _ = time.Parse("01/02/2006", date)
-		dto.Photos = scdp.GetAttributes(ctx, `.ProductReview-reviewPhotos .ProductReviewPhotos-item img`, "src", chromedp.FromNode(reviewNode))
-		dto.Name = scdp.GetText(ctx, `.ProductReview-customerInfo .ProductReviewCustomerInfo-name`, chromedp.FromNode(reviewNode))
-		dto.Badge = scdp.GetText(ctx, `.ProductReview-customerInfo .ProductReviewerComplianceBadge-tooltip`, chromedp.FromNode(reviewNode))
-		helpful := scdp.GetText(ctx, `.ProductReview-helpfulButton`, chromedp.FromNode(reviewNode))
-		dto.Helpful = getHelpful(helpful)
-
-		r = append(r, dto)
+		return x.FetchReviews(item, from)
+	} else if err == nil {
+		r = make([]*model.ReviewDTO, 0, len(dic))
+		for _, v := range dic {
+			r = append(r, v)
+		}
+	} else {
+		r = make([]*model.ReviewDTO, 0)
 	}
 
 	return
 }
 
-func getHelpful(str string) int {
-	helpfulStr := _helpfulRegex.FindString(str)
-	if helpfulStr != "" {
-		r, _ := strconv.Atoi(helpfulStr)
-		return r
+func captureReviewsFromAjax(ev interface{}, mainCtx context.Context, item *model.ItemDTO, from time.Time, dic *map[int]*model.ReviewDTO) {
+	switch ev := ev.(type) {
+
+	case *network.EventResponseReceived:
+		if ev.Response.Status != 200 || !strings.Contains(ev.Response.URL, _ajaxURL) { // 排除不满足条件的Response
+			return
+		}
+		c := chromedp.FromContext(mainCtx)
+		data, err := network.GetResponseBody(ev.RequestID).Do(cdp.WithExecutor(mainCtx, c.Target)) // 获取Response Body数据
+		if u.LogError(err) {
+			return
+		}
+		var resp *model.ReviewResp
+		err = json.Unmarshal(data, &resp) // 反序列化
+		if u.LogError(err) {
+			return
+		}
+
+		if resp != nil && resp.Data != nil && resp.Data.Product != nil && resp.Data.Product.CustomerReviews != nil && len(resp.Data.Product.CustomerReviews.Reviews) > 0 { // 再次排除非Review Ajax请求
+			for _, review := range resp.Data.Product.CustomerReviews.Reviews {
+				date, err := time.Parse("01/02/2006", review.Date)
+				if err != nil {
+					log.Errorf("%d parse date failed: %s", review.ReviewID, err.Error())
+					continue
+				}
+				if date.After(from) {
+					review.SKU = item.SKU
+					review.Items = item.Items
+					(*dic)[review.ReviewID] = review // 添加进结果
+				}
+			}
+		}
 	}
-	return 0
 }
 
 func loadReviews(ctx context.Context, from time.Time) bool {
-	reviewNodes := scdp.GetNodes(ctx, "article.ProductReview")
+	reviewNodes := scdp.GetNodesWithAuth(ctx, "article.ProductReview")
 
 	count := len(reviewNodes)
 
 	if count > 0 {
 		lastReviewNode := reviewNodes[count-1]
-		dateText := scdp.GetText(ctx, `.ProductReview-reviewDetails p[data-hb-id="pl-text"]`, chromedp.FromNode(lastReviewNode))
+		dateText := scdp.GetTextWithAuth(ctx, `.ProductReview-reviewDetails p[data-hb-id="pl-text"]`, chromedp.FromNode(lastReviewNode))
 		date, _ := time.Parse("01/02/2006", dateText)
 		if date.After(from) {
 			return loadMore(ctx)
@@ -163,12 +216,12 @@ func loadReviews(ctx context.Context, from time.Time) bool {
 }
 
 func loadMore(ctx context.Context) bool {
-	loadButtons := scdp.GetNodes(ctx, "div.ProductReviewList-links button")
+	loadButtons := scdp.GetNodesWithAuth(ctx, "div.ProductReviewList-links button")
 	if len(loadButtons) > 0 {
 		// 有加载按钮
-		buttonText := scdp.GetText(ctx, ".Button-content", chromedp.FromNode(loadButtons[0]))
+		buttonText := scdp.GetTextWithAuth(ctx, ".Button-content", chromedp.FromNode(loadButtons[0]))
 		if strings.Contains(buttonText, "More") { // 是加载更多按钮
-			scdp.Click(ctx, `div.ProductReviewList-links button`)
+			scdp.ClickWithAuth(ctx, `div.ProductReviewList-links button`)
 			return true
 		} else {
 			return false
