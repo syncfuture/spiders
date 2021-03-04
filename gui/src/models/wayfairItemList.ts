@@ -7,7 +7,7 @@ export interface IItemListModelState {
     totalCount: number,
     pageSize: number,
     status: string,
-    asin: string,
+    sku: string,
     itemNo: string,
 }
 
@@ -33,7 +33,7 @@ const ItemListModel: IItemListModel = {
         totalCount: 0,
         pageSize: 20,
         status: "",
-        asin: "",
+        sku: "",
         itemNo: "",
     },
 
@@ -43,7 +43,7 @@ const ItemListModel: IItemListModel = {
         //     const query = {
         //         pageSize: state.pageSize,
         //         status: state.status,
-        //         asin: state.asin,
+        //         sku: state.sku,
         //         itemNo: state.itemNo,
         //         searchAfter: "",
         //     };
@@ -55,7 +55,7 @@ const ItemListModel: IItemListModel = {
             const state = yield select((x: any) => x["wayfairItemList"]);
             const query = {
                 status: state.status,
-                asin: state.asin,
+                sku: state.sku,
                 itemNo: state.itemNo,
             };
 
@@ -67,7 +67,7 @@ const ItemListModel: IItemListModel = {
             const state = (yield select((x: any) => x["wayfairItemList"])) as IItemListModelState;
             const query = {
                 status: state.status,
-                asin: state.asin,
+                sku: state.sku,
                 itemNo: state.itemNo,
             };
             const resp = yield call(wayfairGetItems, query);
@@ -78,7 +78,7 @@ const ItemListModel: IItemListModel = {
         //     const query = {
         //         pageSize: state.pageSize,
         //         status: state.status,
-        //         asin: state.asin,
+        //         sku: state.sku,
         //         itemNo: state.itemNo,
         //         cusor: "",
         //     };

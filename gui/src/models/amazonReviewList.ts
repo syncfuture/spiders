@@ -47,8 +47,8 @@ const ReviewListModel: IReviewListModel = {
                 itemNo: state.itemNo,
                 fromDate: state.fromDate,
             };
-            const reviews = yield call(amazonGetReviews, query);
-            yield put({ type: 'setState', payload: { reviews } });
+            const resp = yield call(amazonGetReviews, query);
+            yield put({ type: 'setState', payload: { reviews: resp.Reviews ?? [], totalCount: resp.TotalCount } });
         },
     },
     reducers: {

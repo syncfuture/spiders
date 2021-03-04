@@ -48,7 +48,8 @@ func (x *ESItemDAL) GetItems(in *model.ItemQuery) (r *model.ItemQueryResult, err
 		filters = append(filters, elastic.NewMatchQuery("SKU.keyword", in.SKU))
 	}
 	if in.ItemNo != "" {
-		filters = append(filters, elastic.NewMatchQuery("ItemNo.keyword", in.ItemNo))
+		// filters = append(filters, elastic.NewMatchQuery("ItemNOs.keyword", in.ItemNo))
+		filters = append(filters, elastic.NewMatchPhraseQuery("ItemNOs", in.ItemNo))
 	}
 
 	searchService.Query(elastic.NewBoolQuery().Filter(filters...))

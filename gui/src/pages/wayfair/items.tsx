@@ -87,8 +87,8 @@ class ItemsPage<T extends IPageProps> extends React.Component<T> {
       sorter: (a: any, b: any) => a.SKU.localeCompare(b.SKU),
     },
     {
-      title: 'ItemNo',
-      dataIndex: 'ItemNo',
+      title: 'ItemNOs',
+      dataIndex: 'ItemNOs',
       sorter: (a: any, b: any) => a.ItemNo.localeCompare(b.ItemNo),
     },
     {

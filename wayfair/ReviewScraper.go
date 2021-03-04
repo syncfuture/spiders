@@ -207,7 +207,7 @@ func captureReviewsFromAjax(ev interface{}, mainCtx context.Context, item *model
 				}
 				if review.CreatedOn.After(from) {
 					review.SKU = item.SKU
-					review.Items = item.Items
+					review.ItemNOs = item.ItemNOs
 					(*dic)[review.ReviewID] = review // 添加进结果
 				}
 			}

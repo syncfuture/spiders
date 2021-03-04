@@ -62,38 +62,42 @@ func NewAmazonHttpHandlers(cp sconfig.IConfigProvider, proxyStore store.IProxySt
 }
 
 func (x *amazonHttpHandlers) GetReviews(ctx iris.Context) {
+	ctx.ContentType("application/json; charset=utf-8")
 	query := x.getReviewQuery(ctx)
 	result, err := x.reviewDAL.GetAllReviews(query)
 	if u.LogError(err) {
-		ctx.WriteString(err.Error())
+		// ctx.WriteString(err.Error())
+		ctx.WriteString("{}")
 		return
 	}
 
-	json, err := json.Marshal(result.Reviews)
+	json, err := json.Marshal(result)
 	if u.LogError(err) {
-		ctx.WriteString(err.Error())
+		// ctx.WriteString(err.Error())
+		ctx.WriteString("{}")
 		return
 	}
 
-	ctx.ContentType("application/json; charset=utf-8")
 	ctx.Write(json)
 }
 
 func (x *amazonHttpHandlers) GetItems(ctx iris.Context) {
-	query := x.getItemQuery(ctx)
-	items, err := x.itemDAL.GetAllItems(query)
-	if u.LogError(err) {
-		ctx.WriteString(err.Error())
-		return
-	}
-
-	json, err := json.Marshal(items)
-	if u.LogError(err) {
-		ctx.WriteString(err.Error())
-		return
-	}
-
 	ctx.ContentType("application/json; charset=utf-8")
+	query := x.getItemQuery(ctx)
+	result, err := x.itemDAL.GetAllItems(query)
+	if u.LogError(err) {
+		// ctx.WriteString(err.Error())
+		ctx.WriteString("{}")
+		return
+	}
+
+	json, err := json.Marshal(result)
+	if u.LogError(err) {
+		// ctx.WriteString(err.Error())
+		ctx.WriteString("{}")
+		return
+	}
+
 	ctx.Write(json)
 }
 
@@ -183,6 +187,7 @@ func (x *amazonHttpHandlers) ExportReviews(ctx iris.Context) {
 	header.AddCell().Value = "CreatedOn"
 	header.AddCell().Value = "Title"
 	header.AddCell().Value = "Content"
+	header.AddCell().Value = "URL"
 
 	for _, review := range result.Reviews {
 		row := sheet.AddRow()
@@ -197,6 +202,7 @@ func (x *amazonHttpHandlers) ExportReviews(ctx iris.Context) {
 		row.AddCell().Value = review.CreatedOn.Format("01/02/2006")
 		row.AddCell().Value = review.Title
 		row.AddCell().Value = review.Content
+		row.AddCell().Value = "https://www.amazon.com/dp/" + review.ASIN
 	}
 
 	buffer := x.bufferPool.GetBuffer()

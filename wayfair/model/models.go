@@ -3,10 +3,10 @@ package model
 import "time"
 
 type ItemDTO struct {
-	Items  string
-	SKU    string
-	URL    string
-	Status int
+	ItemNOs string
+	SKU     string
+	URL     string
+	Status  int
 }
 
 // type ReviewDTO struct {
@@ -87,7 +87,7 @@ type ReviewDTO struct {
 	ProductUrl                 string         `json:"productUrl,omitempty"`
 	CustomerPhotos             []*ReviewPhoto `json:"customerPhotos,omitempty"`
 	SKU                        string         `json:"sku,omitempty"`
-	Items                      string         `json:"items,omitempty"`
+	ItemNOs                    string         `json:"itemNOs,omitempty"`
 	CreatedOn                  time.Time      `json:"createdOn,omitempty"`
 }
 type ReviewPhoto struct {

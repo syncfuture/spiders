@@ -31,7 +31,7 @@ func (x *ESReviewDAL) GetReviews(in *model.ReviewQuery) (r *model.ReviewQueryRes
 
 	// searchService := x.esClient.Search(_reviewIndex).
 	searchService := x.esClient.Scroll(_reviewIndex).
-		Sort("ReviewID", false).
+		Sort("reviewId", false).
 		Size(in.PageSize)
 
 	// if in.Cursor != "" {
@@ -43,10 +43,11 @@ func (x *ESReviewDAL) GetReviews(in *model.ReviewQuery) (r *model.ReviewQueryRes
 
 	filters := []elastic.Query{}
 	if in.SKU != "" {
-		filters = append(filters, elastic.NewMatchQuery("SKU.keyword", in.SKU))
+		filters = append(filters, elastic.NewMatchQuery("sku.keyword", in.SKU))
 	}
 	if in.ItemNo != "" {
-		filters = append(filters, elastic.NewMatchQuery("ItemNo.keyword", in.ItemNo))
+		// filters = append(filters, elastic.NewMatchQuery("ItemNo.keyword", in.ItemNo))
+		filters = append(filters, elastic.NewMatchQuery("itemNOs", in.ItemNo))
 	}
 
 	searchService.Query(elastic.NewBoolQuery().Filter(filters...))

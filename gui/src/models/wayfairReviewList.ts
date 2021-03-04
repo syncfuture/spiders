@@ -8,7 +8,7 @@ export interface IReviewListModelState {
     totalCount: number,
     pageSize: number,
     status: string,
-    asin: string,
+    sku: string,
     itemNo: string,
     fromDate: string,
 }
@@ -34,7 +34,7 @@ const ReviewListModel: IReviewListModel = {
         totalCount: 0,
         pageSize: 20,
         status: "",
-        asin: "",
+        sku: "",
         itemNo: "",
         fromDate: moment().add(-1, "M").format("YYYY-MM-DD"),
     },
@@ -43,12 +43,12 @@ const ReviewListModel: IReviewListModel = {
         *getReviews({ _ }, { call, put, select }) {
             const state = yield select((x: any) => x["wayfairReviewList"]);
             const query = {
-                asin: state.asin,
+                sku: state.sku,
                 itemNo: state.itemNo,
                 fromDate: state.fromDate,
             };
-            const reviews = yield call(wayfairGetReviews, query);
-            yield put({ type: 'setState', payload: { reviews } });
+            const resp = yield call(wayfairGetReviews, query);
+            yield put({ type: 'setState', payload: { reviews: resp.Reviews ?? [], totalCount: resp.TotalCount } });
         },
     },
     reducers: {
@@ -63,11 +63,11 @@ const ReviewListModel: IReviewListModel = {
             f.setAttribute("action", u.BaseURI() + "/wayfair/reviews/export/");
             f.setAttribute("method", "post");
             f.setAttribute("target", "download");
-            const asinInput = document.createElement("input");
-            asinInput.setAttribute("type", "hidden");
-            asinInput.setAttribute("name", "asin");
-            asinInput.setAttribute("value", state.asin);
-            f.append(asinInput);
+            const skuInput = document.createElement("input");
+            skuInput.setAttribute("type", "hidden");
+            skuInput.setAttribute("name", "sku");
+            skuInput.setAttribute("value", state.sku);
+            f.append(skuInput);
             const itemNoInput = document.createElement("input");
             itemNoInput.setAttribute("type", "hidden");
             itemNoInput.setAttribute("name", "itemNo");

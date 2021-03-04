@@ -76,57 +76,52 @@ class ReviewsPage<T extends IPageProps> extends React.Component<T> {
 
   _columns: any[] = [
     {
+      title: 'ID',
+      dataIndex: 'reviewId',
+      defaultSortOrder: 'descend',
+      width: 100,
+      sorter: (a: any, b: any) => a.reviewId - b.reviewId,
+    },
+    {
       title: 'SKU',
-      dataIndex: 'SKU',
-      defaultSortOrder: 'ascend',
+      dataIndex: 'sku',
       width: 100,
-      sorter: (a: any, b: any) => a.SKU.localeCompare(b.SKU),
-    },
-    {
-      title: 'ItemNo',
-      dataIndex: 'CustomerNo',
-      width: 100,
-      sorter: (a: any, b: any) => a.CustomerNo.localeCompare(b.CustomerNo),
-    },
-    {
-      title: 'StripInfo',
-      dataIndex: 'StripInfo',
-      sorter: (a: any, b: any) => a.Title.localeCompare(b.Title),
+      sorter: (a: any, b: any) => a.sku.localeCompare(b.sku),
     },
     {
       title: 'Rating',
-      dataIndex: 'Rating',
+      dataIndex: 'ratingStars',
       align: "center",
       width: 80,
-      sorter: (a: any, b: any) => a.Rating - b.Rating,
+      sorter: (a: any, b: any) => a.ratingStars - b.ratingStars,
     },
     {
       title: 'IsVerified',
-      dataIndex: 'IsVerified',
+      dataIndex: 'hasVerifiedBuyerStatus',
       align: "center",
       width: 80,
-      sorter: (a: any, b: any) => a.IsVerified > b.IsVerified,
-      render: (_: any, x: any) => <label>{x.IsVerified ? <CheckCircleTwoTone twoToneColor="#52c41a" /> : ""}</label>,
+      sorter: (a: any, b: any) => a.hasVerifiedBuyerStatus > b.hasVerifiedBuyerStatus,
+      render: (_: any, x: any) => <label>{x.hasVerifiedBuyerStatus ? <CheckCircleTwoTone twoToneColor="#52c41a" /> : ""}</label>,
     },
     {
-      title: 'Location',
-      dataIndex: 'Location',
+      title: 'Language',
+      dataIndex: 'languageCode',
       width: 120,
       ellipsis: true,
-      sorter: (a: any, b: any) => a.Location.localeCompare(b.Location),
+      sorter: (a: any, b: any) => a.languageCode.localeCompare(b.languageCode),
     },
     {
-      title: 'CustomerName',
-      dataIndex: 'CustomerName',
+      title: 'Reviewer',
+      dataIndex: 'reviewerName',
       width: 150,
       ellipsis: true,
-      sorter: (a: any, b: any) => a.CustomerName.localeCompare(b.CustomerName),
+      sorter: (a: any, b: any) => a.reviewerName.localeCompare(b.reviewerName),
     },
     {
       title: 'CreatedOn',
-      dataIndex: 'CreatedOn',
+      dataIndex: 'createdOn',
       width: 100,
-      sorter: (a: any, b: any) => a.CreatedOn.localeCompare(b.CreatedOn),
+      sorter: (a: any, b: any) => a.createdOn.localeCompare(b.createdOn),
       render: (_: any, x: any) => <label>{moment(x.CreatedOn).format("MM/DD/YYYY")}</label>,
     },
   ];
@@ -169,7 +164,7 @@ class ReviewsPage<T extends IPageProps> extends React.Component<T> {
           dataSource={model.reviews}
           columns={this._columns}
           size="small"
-          rowKey="WayfairID"
+          rowKey="reviewId"
           loading={loading}
           pagination={{
             total: model.totalCount,

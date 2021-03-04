@@ -38,7 +38,7 @@ func TestImport(t *testing.T) {
 		status := strings.TrimSpace(row.Cells[6].Value)
 		wfFamilyID := strings.TrimSpace(row.Cells[8].Value)
 		eecItemNo := strings.TrimSpace(row.Cells[0].Value)
-		if (eecItemNo != "" && eecItemNo != "N/A") && (wfFamilyID != "" && wfFamilyID != "N/A") && (status == "Active" || status == "Live Product") {
+		if (eecItemNo != "" && !strings.Contains(eecItemNo, "N/A")) && (wfFamilyID != "" && !strings.Contains(wfFamilyID, "N/A")) && (status == "Active" || status == "Live Product") {
 			itemsStr := wfSKUs[wfFamilyID]
 			wfSKUs[wfFamilyID] = itemsStr + "," + eecItemNo
 		}
@@ -56,8 +56,8 @@ func TestImport(t *testing.T) {
 
 	for k, v := range wfSKUs {
 		wfItems = append(wfItems, &model.ItemDTO{
-			SKU:   k,
-			Items: v + ",",
+			SKU:     k,
+			ItemNOs: v + ",",
 		})
 	}
 
