@@ -14,28 +14,27 @@ import (
 	"github.com/syncfuture/go/spool"
 	"github.com/syncfuture/go/stask"
 	"github.com/syncfuture/go/u"
+	"github.com/syncfuture/scraper/scdp"
 	"github.com/syncfuture/scraper/store"
-	"github.com/syncfuture/spiders/amazon"
-	"github.com/syncfuture/spiders/amazon/dal"
-	"github.com/syncfuture/spiders/amazon/dal/es"
+	"github.com/syncfuture/spiders/wayfair"
+	"github.com/syncfuture/spiders/wayfair/dal"
+	"github.com/syncfuture/spiders/wayfair/dal/es"
+	"github.com/syncfuture/spiders/wayfair/model"
 	"github.com/tealeg/xlsx"
 )
 
-const (
-	_notFoundError = "404 Not Found"
-)
-
-type amazonHttpHandlers struct {
+type wayfairHttpHandlers struct {
 	configProvier sconfig.IConfigProvider
 	reviewDAL     dal.IReviewDAL
 	itemDAL       dal.IItemDAL
 	scrapeLocker  *sync.Mutex
-	proxyStore    store.IProxyStore
+	// proxyStore    store.IProxyStore
+	CDPClient     *scdp.ChromeDPClient
 	maxConcurrent int
 	bufferPool    spool.BufferPool
 }
 
-func NewAmazonHttpHandlers(cp sconfig.IConfigProvider, proxyStore store.IProxyStore) *amazonHttpHandlers {
+func NewWayfairHttpHandlers(cp sconfig.IConfigProvider, proxyStore store.IProxyStore) *wayfairHttpHandlers {
 	addrs := cp.GetStringSlice("ES.Addrs")
 
 	itemDAL, err := es.NewESItemDAL(
@@ -50,18 +49,19 @@ func NewAmazonHttpHandlers(cp sconfig.IConfigProvider, proxyStore store.IProxySt
 	)
 	u.LogFaltal(err)
 
-	return &amazonHttpHandlers{
+	return &wayfairHttpHandlers{
 		configProvier: cp,
 		itemDAL:       itemDAL,
 		reviewDAL:     reviewDAL,
 		scrapeLocker:  new(sync.Mutex),
-		proxyStore:    proxyStore,
-		maxConcurrent: cp.GetIntDefault("AmazonMaxConcurrent", 15),
+		// proxyStore:    proxyStore,
+		CDPClient:     scdp.NewChromeDPClient(cp, proxyStore),
+		maxConcurrent: cp.GetIntDefault("WayfairMaxConcurrent", 1),
 		bufferPool:    spool.NewSyncBufferPool(4096),
 	}
 }
 
-func (x *amazonHttpHandlers) GetReviews(ctx iris.Context) {
+func (x *wayfairHttpHandlers) GetReviews(ctx iris.Context) {
 	query := x.getReviewQuery(ctx)
 	result, err := x.reviewDAL.GetAllReviews(query)
 	if u.LogError(err) {
@@ -79,7 +79,7 @@ func (x *amazonHttpHandlers) GetReviews(ctx iris.Context) {
 	ctx.Write(json)
 }
 
-func (x *amazonHttpHandlers) GetItems(ctx iris.Context) {
+func (x *wayfairHttpHandlers) GetItems(ctx iris.Context) {
 	query := x.getItemQuery(ctx)
 	items, err := x.itemDAL.GetAllItems(query)
 	if u.LogError(err) {
@@ -97,7 +97,7 @@ func (x *amazonHttpHandlers) GetItems(ctx iris.Context) {
 	ctx.Write(json)
 }
 
-func (x *amazonHttpHandlers) PostScrape(ctx iris.Context) {
+func (x *wayfairHttpHandlers) PostScrape(ctx iris.Context) {
 	x.scrapeLocker.Lock()
 	defer x.scrapeLocker.Unlock()
 
@@ -113,12 +113,12 @@ func (x *amazonHttpHandlers) PostScrape(ctx iris.Context) {
 
 	f := stask.NewFlowScheduler(x.maxConcurrent)
 	f.SliceRun(&result.Items, func(i int, v interface{}) {
-		item := v.(*amazon.ItemDTO)
+		item := v.(*model.ItemDTO)
 
 		atomic.AddInt32(&count, 1)
 
-		s := amazon.NewReviewsScraper(x.proxyStore, item.ASIN)
-		reviews, err := s.FetchPages(&fromDate)
+		s := wayfair.NewReviewsScraper(x.CDPClient)
+		reviews, err := s.FetchReviews(item, fromDate)
 		if u.LogError(err) {
 			if err.Error() == _notFoundError {
 				item.Status = 404
@@ -130,12 +130,7 @@ func (x *amazonHttpHandlers) PostScrape(ctx iris.Context) {
 		}
 
 		if len(reviews) > 0 { // 有评论才存储
-			// 关联E&E ItemNo
-			for _, review := range reviews {
-				review.CustomerNo = item.ItemNo
-			}
-
-			err = x.reviewDAL.SaveReviews(reviews)
+			err = x.reviewDAL.SaveReviews(reviews...)
 			if u.LogError(err) {
 				item.Status = -1
 				x.itemDAL.SaveItems(item)
@@ -147,17 +142,12 @@ func (x *amazonHttpHandlers) PostScrape(ctx iris.Context) {
 		x.itemDAL.SaveItems(item)
 	})
 
-	// err = _itemDAL.SaveItems(result.Items...)
-	// if u.LogError(err) {
-	// 	return
-	// }
-
 	ctx.ContentType("application/json; charset=utf-8")
 	json := fmt.Sprintf(`{"count":%d}`, count)
 	ctx.WriteString(json)
 }
 
-func (x *amazonHttpHandlers) ExportReviews(ctx iris.Context) {
+func (x *wayfairHttpHandlers) ExportReviews(ctx iris.Context) {
 	query := x.getReviewQuery(ctx)
 	result, err := x.reviewDAL.GetAllReviews(query)
 	if u.LogError(err) {
@@ -172,31 +162,61 @@ func (x *amazonHttpHandlers) ExportReviews(ctx iris.Context) {
 		return
 	}
 	header := sheet.AddRow()
-	header.AddCell().Value = "AmazonID"
-	header.AddCell().Value = "ASIN"
-	header.AddCell().Value = "ItemNo"
-	header.AddCell().Value = "StripInfo"
-	header.AddCell().Value = "Rating"
-	header.AddCell().Value = "IsVerified"
-	header.AddCell().Value = "Location"
-	header.AddCell().Value = "CustomerName"
-	header.AddCell().Value = "CreatedOn"
-	header.AddCell().Value = "Title"
-	header.AddCell().Value = "Content"
+	header.AddCell().Value = "ReviewID"
+	header.AddCell().Value = "SKU"
+	header.AddCell().Value = "ItemNOs"
+	header.AddCell().Value = "ReviewerName"
+	header.AddCell().Value = "HasVerifiedBuyerStatus"
+	header.AddCell().Value = "IsUSReviewer"
+	header.AddCell().Value = "ReviewerBadgeText"
+	header.AddCell().Value = "ReviewerBadgeID"
+	header.AddCell().Value = "RatingStars"
+	header.AddCell().Value = "Date"
+	header.AddCell().Value = "Headline"
+	header.AddCell().Value = "ProductComments"
+	header.AddCell().Value = "HeadlineTranslation"
+	header.AddCell().Value = "ProductCommentsTranslation"
+	header.AddCell().Value = "LanguageCode"
+	header.AddCell().Value = "ReviewHelpful"
+	header.AddCell().Value = "IsReviewHelpfulUpvoted"
+	header.AddCell().Value = "ProductName"
+	header.AddCell().Value = "ProductUrl"
+	// header.AddCell().Value = "CreatedOn"
+	header.AddCell().Value = "CustomerPhotos"
 
 	for _, review := range result.Reviews {
 		row := sheet.AddRow()
-		row.AddCell().Value = review.AmazonID
-		row.AddCell().Value = review.ASIN
-		row.AddCell().Value = review.CustomerNo
-		row.AddCell().Value = review.StripInfo
-		row.AddCell().Value = strconv.Itoa(int(review.Rating))
-		row.AddCell().Value = strconv.FormatBool(review.IsVerified)
-		row.AddCell().Value = review.Location
-		row.AddCell().Value = review.CustomerName
-		row.AddCell().Value = review.CreatedOn.Format("01/02/2006")
-		row.AddCell().Value = review.Title
-		row.AddCell().Value = review.Content
+		row.AddCell().Value = strconv.Itoa(review.ReviewID)
+		row.AddCell().Value = review.SKU
+		row.AddCell().Value = review.Items
+		row.AddCell().Value = review.ReviewerName
+		row.AddCell().Value = strconv.FormatBool(review.HasVerifiedBuyerStatus)
+		row.AddCell().Value = strconv.FormatBool(review.IsUSReviewer)
+		row.AddCell().Value = review.ReviewerBadgeText
+		row.AddCell().Value = strconv.Itoa(review.ReviewerBadgeID)
+		row.AddCell().Value = strconv.Itoa(review.RatingStars)
+		row.AddCell().Value = review.Date
+		row.AddCell().Value = review.Headline
+		row.AddCell().Value = review.ProductComments
+		row.AddCell().Value = review.HeadlineTranslation
+		row.AddCell().Value = review.ProductCommentsTranslation
+		row.AddCell().Value = review.LanguageCode
+		row.AddCell().Value = strconv.Itoa(review.ReviewHelpful)
+		row.AddCell().Value = strconv.FormatBool(review.IsReviewHelpfulUpvoted)
+		row.AddCell().Value = review.ProductName
+		row.AddCell().Value = review.ProductUrl
+		// row.AddCell().Value = review.CreatedOn
+
+		var photoStr string
+		if len(review.CustomerPhotos) > 0 {
+			data, err := json.Marshal(review.CustomerPhotos)
+			if err != nil {
+				photoStr = err.Error()
+			} else {
+				photoStr = string(data)
+			}
+		}
+		row.AddCell().Value = photoStr
 	}
 
 	buffer := x.bufferPool.GetBuffer()
@@ -209,8 +229,8 @@ func (x *amazonHttpHandlers) ExportReviews(ctx iris.Context) {
 	ctx.Write(buffer.Bytes())
 }
 
-func (x *amazonHttpHandlers) getItemQuery(ctx iris.Context) *amazon.ItemQuery {
-	asin := string(ctx.FormValue("asin"))
+func (x *wayfairHttpHandlers) getItemQuery(ctx iris.Context) *model.ItemQuery {
+	sku := string(ctx.FormValue("sku"))
 	itemNo := string(ctx.FormValue("itemNo"))
 	statusStr := string(ctx.FormValue("status"))
 	pageSizeStr := string(ctx.FormValue("pageSize"))
@@ -220,17 +240,17 @@ func (x *amazonHttpHandlers) getItemQuery(ctx iris.Context) *amazon.ItemQuery {
 		pageSize = 10000
 	}
 
-	return &amazon.ItemQuery{
+	return &model.ItemQuery{
 		Status:   statusStr,
 		PageSize: pageSize,
 		Cursor:   cursor,
-		ASIN:     asin,
+		SKU:      sku,
 		ItemNo:   itemNo,
 	}
 }
 
-func (x *amazonHttpHandlers) getReviewQuery(ctx iris.Context) *amazon.ReviewQuery {
-	asin := string(ctx.FormValue("asin"))
+func (x *wayfairHttpHandlers) getReviewQuery(ctx iris.Context) *model.ReviewQuery {
+	sku := string(ctx.FormValue("sku"))
 	itemNo := string(ctx.FormValue("itemNo"))
 	pageSizeStr := string(ctx.FormValue("pageSize"))
 	cursor := string(ctx.FormValue("cursor"))
@@ -240,10 +260,10 @@ func (x *amazonHttpHandlers) getReviewQuery(ctx iris.Context) *amazon.ReviewQuer
 		pageSize = 10000
 	}
 
-	return &amazon.ReviewQuery{
+	return &model.ReviewQuery{
 		PageSize: pageSize,
 		Cursor:   cursor,
-		ASIN:     asin,
+		SKU:      sku,
 		ItemNo:   itemNo,
 		FromDate: fromDate,
 	}

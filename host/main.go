@@ -11,10 +11,6 @@ import (
 	"github.com/syncfuture/scraper/store/webshare"
 )
 
-const (
-	_key = "be09d781115fe3491743fa205ea786852513f474"
-)
-
 var (
 	_proxyStore store.IProxyStore
 	_cp         sconfig.IConfigProvider
@@ -26,7 +22,7 @@ func init() {
 	_cp = sconfig.NewJsonConfigProvider()
 	_debug = _cp.GetBool("Debug")
 	log.Init(_cp)
-	_proxyStore = webshare.NewWebShareProxyStore(_key)
+	_proxyStore = webshare.NewDefaultWebShareProxyStore()
 	_listenAddr = _cp.GetStringDefault("ListenAddr", ":7000")
 }
 
@@ -61,11 +57,19 @@ func main() {
 		api = app.Party("/api")
 	}
 
+	amazonAPI := api.Party("/amazon")
 	amazonHttpHandler := NewAmazonHttpHandlers(_cp, _proxyStore)
-	api.Get("/amazon/reviews", amazonHttpHandler.GetReviews)
-	api.Post("/amazon/reviews/export", amazonHttpHandler.ExportReviews)
-	api.Get("/amazon/items", amazonHttpHandler.GetItems)
-	api.Post("/amazon/scrape", amazonHttpHandler.PostScrape)
+	amazonAPI.Get("/reviews", amazonHttpHandler.GetReviews)
+	amazonAPI.Post("/reviews/export", amazonHttpHandler.ExportReviews)
+	amazonAPI.Get("/items", amazonHttpHandler.GetItems)
+	amazonAPI.Post("/scrape", amazonHttpHandler.PostScrape)
+
+	wayfairAPI := api.Party("/wayfair")
+	wayfairHttpHandler := NewWayfairHttpHandlers(_cp, _proxyStore)
+	wayfairAPI.Get("/reviews", wayfairHttpHandler.GetReviews)
+	wayfairAPI.Post("/reviews/export", wayfairHttpHandler.ExportReviews)
+	wayfairAPI.Get("/items", wayfairHttpHandler.GetItems)
+	wayfairAPI.Post("/scrape", wayfairHttpHandler.PostScrape)
 
 	app.Run(iris.Addr(_listenAddr))
 }

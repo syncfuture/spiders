@@ -18,21 +18,21 @@ class ItemsPage<T extends IPageProps> extends React.Component<T> {
   getItems = () => {
     const { dispatch } = this.props;
     dispatch({
-      type: 'itemList/getItems',
+      type: 'amazonItemList/getItems',
     });
   };
 
   // loadMore = () => {
   //   const { dispatch } = this.props;
   //   dispatch({
-  //     type: 'itemList/loadMore',
+  //     type: 'amazonItemList/loadMore',
   //   });
   // };
 
   onASINChanged = (e: any) => {
     const { dispatch } = this.props;
     dispatch({
-      type: 'itemList/setState',
+      type: 'amazonItemList/setState',
       payload: {
         asin: e.target.value,
       },
@@ -42,7 +42,7 @@ class ItemsPage<T extends IPageProps> extends React.Component<T> {
   onItemNoChanged = (e: any) => {
     const { dispatch } = this.props;
     dispatch({
-      type: 'itemList/setState',
+      type: 'amazonItemList/setState',
       payload: {
         itemNo: e.target.value,
       },
@@ -52,7 +52,7 @@ class ItemsPage<T extends IPageProps> extends React.Component<T> {
   onStatusChanged = (newValue: number) => {
     const { dispatch } = this.props;
     dispatch({
-      type: 'itemList/setState',
+      type: 'amazonItemList/setState',
       payload: {
         status: newValue,
       },
@@ -62,7 +62,7 @@ class ItemsPage<T extends IPageProps> extends React.Component<T> {
   scrape = (values: any) => {
     const { dispatch } = this.props;
     dispatch({
-      type: 'itemList/scrape',
+      type: 'amazonItemList/scrape',
       payload: {
         ...values
       },
@@ -72,7 +72,7 @@ class ItemsPage<T extends IPageProps> extends React.Component<T> {
   onShowSizeChange = (oldSize: number, newSize: number) => {
     const { dispatch } = this.props;
     dispatch({
-      type: 'itemList/setState',
+      type: 'amazonItemList/setState',
       payload: {
         pageSize: newSize,
       },
@@ -160,7 +160,7 @@ class ItemsPage<T extends IPageProps> extends React.Component<T> {
   }
 }
 
-export default connect(({ itemList, loading }: { itemList: IItemListModelState; loading: Loading }) => ({
-  model: itemList,
-  loading: loading.models.itemList,
+export default connect(({ amazonItemList, loading }: { amazonItemList: IItemListModelState; loading: Loading }) => ({
+  model: amazonItemList,
+  loading: loading.models.amazonItemList,
 }))(ItemsPage as React.ComponentClass<any>);

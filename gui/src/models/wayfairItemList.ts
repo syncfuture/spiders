@@ -1,4 +1,4 @@
-import { amazonGetItems, amazonScrape } from '@/services/api';
+import { wayfairGetItems, wayfairScrape } from '@/services/api';
 import { message } from 'antd'
 import { Reducer, Effect } from 'umi';
 
@@ -12,7 +12,7 @@ export interface IItemListModelState {
 }
 
 export interface IItemListModel {
-    namespace: 'itemList';
+    // namespace: 'wayfairItemList';
     state: IItemListModelState;
     effects: {
         getItems: Effect;
@@ -26,7 +26,7 @@ export interface IItemListModel {
 }
 
 const ItemListModel: IItemListModel = {
-    namespace: 'itemList',
+    // namespace: 'wayfairItemList',
 
     state: {
         items: [],
@@ -39,7 +39,7 @@ const ItemListModel: IItemListModel = {
 
     effects: {
         // *search({ _ }, { call, put, select }) {
-        //     const state = yield select((x: any) => x["itemList"]);
+        //     const state = yield select((x: any) => x["wayfairItemList"]);
         //     const query = {
         //         pageSize: state.pageSize,
         //         status: state.status,
@@ -52,29 +52,29 @@ const ItemListModel: IItemListModel = {
         //     yield put({ type: 'setState', payload: { items: resp.Items, totalCount: resp.TotalCount } });
         // },
         *scrape({ _ }, { call, select }) {
-            const state = yield select((x: any) => x["itemList"]);
+            const state = yield select((x: any) => x["wayfairItemList"]);
             const query = {
                 status: state.status,
                 asin: state.asin,
                 itemNo: state.itemNo,
             };
 
-            yield call(amazonScrape, query);
+            yield call(wayfairScrape, query);
 
             message.success("reviews scraping started");
         },
         *getItems({ _ }, { call, put, select }) {
-            const state = (yield select((x: any) => x["itemList"])) as IItemListModelState;
+            const state = (yield select((x: any) => x["wayfairItemList"])) as IItemListModelState;
             const query = {
                 status: state.status,
                 asin: state.asin,
                 itemNo: state.itemNo,
             };
-            const resp = yield call(amazonGetItems, query);
+            const resp = yield call(wayfairGetItems, query);
             yield put({ type: 'setState', payload: { items: resp.Items ?? [], totalCount: resp.TotalCount } });
         },
         // *loadMore({ _ }, { call, put, select }) {
-        //     const state = (yield select((x: any) => x["itemList"])) as IItemListModelState;
+        //     const state = (yield select((x: any) => x["wayfairItemList"])) as IItemListModelState;
         //     const query = {
         //         pageSize: state.pageSize,
         //         status: state.status,

@@ -20,13 +20,13 @@ class ReviewsPage<T extends IPageProps> extends React.Component<T> {
     const { dispatch } = this.props;
 
     dispatch({
-      type: 'reviewList/getReviews'
+      type: 'amazonReviewList/getReviews'
     });
   };
   onASINChanged = (e: any) => {
     const { dispatch } = this.props;
     dispatch({
-      type: 'reviewList/setState',
+      type: 'amazonReviewList/setState',
       payload: {
         asin: e.target.value,
       },
@@ -36,7 +36,7 @@ class ReviewsPage<T extends IPageProps> extends React.Component<T> {
   onItemNoChanged = (e: any) => {
     const { dispatch } = this.props;
     dispatch({
-      type: 'reviewList/setState',
+      type: 'amazonReviewList/setState',
       payload: {
         itemNo: e.target.value,
       },
@@ -46,7 +46,7 @@ class ReviewsPage<T extends IPageProps> extends React.Component<T> {
   onFromDateChanged = (e: any) => {
     const { dispatch } = this.props;
     dispatch({
-      type: 'reviewList/setState',
+      type: 'amazonReviewList/setState',
       payload: {
         fromDate: e.format("YYYY-MM-DD"),
       },
@@ -56,7 +56,7 @@ class ReviewsPage<T extends IPageProps> extends React.Component<T> {
   onShowSizeChange = (oldSize: number, newSize: number) => {
     const { dispatch } = this.props;
     dispatch({
-      type: 'reviewList/setState',
+      type: 'amazonReviewList/setState',
       payload: {
         pageSize: newSize,
       },
@@ -66,7 +66,7 @@ class ReviewsPage<T extends IPageProps> extends React.Component<T> {
   export = () => {
     const { dispatch } = this.props;
     dispatch({
-      type: 'reviewList/export',
+      type: 'amazonReviewList/export',
     });
   };
 
@@ -183,7 +183,7 @@ class ReviewsPage<T extends IPageProps> extends React.Component<T> {
   }
 }
 
-export default connect(({ reviewList, loading }: { reviewList: IReviewListModelState; loading: Loading }) => ({
-  model: reviewList,
-  loading: loading.models.reviewList,
+export default connect(({ amazonReviewList, loading }: { amazonReviewList: IReviewListModelState; loading: Loading }) => ({
+  model: amazonReviewList,
+  loading: loading.models.amazonReviewList,
 }))(ReviewsPage as React.ComponentClass<any>);

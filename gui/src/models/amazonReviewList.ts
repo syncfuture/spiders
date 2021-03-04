@@ -14,7 +14,7 @@ export interface IReviewListModelState {
 }
 
 export interface IReviewListModel {
-    namespace: 'reviewList';
+    // namespace: 'amazonReviewList';
     state: IReviewListModelState;
     effects: {
         getReviews: Effect;
@@ -27,7 +27,7 @@ export interface IReviewListModel {
 }
 
 const ReviewListModel: IReviewListModel = {
-    namespace: 'reviewList',
+    // namespace: 'amazonReviewList',
 
     state: {
         reviews: [],
@@ -41,7 +41,7 @@ const ReviewListModel: IReviewListModel = {
 
     effects: {
         *getReviews({ _ }, { call, put, select }) {
-            const state = yield select((x: any) => x["reviewList"]);
+            const state = yield select((x: any) => x["amazonReviewList"]);
             const query = {
                 asin: state.asin,
                 itemNo: state.itemNo,
