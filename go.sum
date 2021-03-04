@@ -204,8 +204,8 @@ github.com/stretchr/testify v1.7.0 h1:nwc3DEeHmmLAfoZucVR881uASk0Mfjw8xYJ99tb5Cc
 github.com/stretchr/testify v1.7.0/go.mod h1:6Fq8oRcR53rry900zMqJjRRixrwX3KX962/h/Wwjteg=
 github.com/syncfuture/go v1.4.0 h1:5BqYgqozVp1WlgII3uT+ItwRqKp+Gg6DqBLYgb86Fq0=
 github.com/syncfuture/go v1.4.0/go.mod h1:5DJm0ATgMfapi+Pu4Kgi3eQPR25Jr2LASiqxqkI+8NI=
-github.com/syncfuture/scraper v1.3.0 h1:rW9KfKQC/2xqX1JroQ0skn+rGtCEkB7UCAK6XtwEpyE=
-github.com/syncfuture/scraper v1.3.0/go.mod h1:fFEgUfoWT+5lCsZ7uPzXuNyzajjfPKJzke1BDEnd2Uc=
+github.com/syncfuture/scraper v1.3.1 h1:8ey6Rbc4L9CkCk4YzByG1tRZFbXeJAlO1hZZ/TT9jyY=
+github.com/syncfuture/scraper v1.3.1/go.mod h1:fFEgUfoWT+5lCsZ7uPzXuNyzajjfPKJzke1BDEnd2Uc=
 github.com/tealeg/xlsx v1.0.5 h1:+f8oFmvY8Gw1iUXzPk+kz+4GpbDZPK1FhPiQRd+ypgE=
 github.com/tealeg/xlsx v1.0.5/go.mod h1:btRS8dz54TDnvKNosuAqxrM1QgN1udgk9O34bDCnORM=
 github.com/tidwall/gjson v1.6.8 h1:CTmXMClGYPAmln7652e69B7OLXfTi5ABcPPwjIWUv7w=

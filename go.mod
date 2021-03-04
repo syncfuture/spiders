@@ -17,7 +17,7 @@ require (
 	github.com/smartystreets/goconvey v1.6.4 // indirect
 	github.com/stretchr/testify v1.7.0
 	github.com/syncfuture/go v1.4.0
-	github.com/syncfuture/scraper v1.3.0
+	github.com/syncfuture/scraper v1.3.1
 	github.com/tealeg/xlsx v1.0.5
 	github.com/valyala/fasthttp v1.22.0 // indirect
 	github.com/xeipuuv/gojsonschema v1.2.0 // indirect
