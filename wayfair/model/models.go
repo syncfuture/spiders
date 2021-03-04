@@ -86,9 +86,9 @@ type ReviewDTO struct {
 	ProductName                string         `json:"productName,omitempty"`
 	ProductUrl                 string         `json:"productUrl,omitempty"`
 	CustomerPhotos             []*ReviewPhoto `json:"customerPhotos,omitempty"`
-	SKU                        string
-	Items                      string
-	CreatedOnUTC               time.Time
+	SKU                        string         `json:"sku,omitempty"`
+	Items                      string         `json:"items,omitempty"`
+	CreatedOn                  time.Time      `json:"createdOn,omitempty"`
 }
 type ReviewPhoto struct {
 	Index     int    `json:"idx,omitempty"`

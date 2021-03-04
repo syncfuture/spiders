@@ -107,6 +107,9 @@ func (x *ESItemDAL) GetAllItems(in *amazon.ItemQuery) (*amazon.ItemQueryResult, 
 }
 
 func (x *ESItemDAL) SaveItems(items ...*amazon.ItemDTO) error {
+	if len(items) == 0 {
+		return nil
+	}
 	bulkService := x.esClient.Bulk().Index(_itemIndex)
 
 	for _, item := range items {
@@ -138,6 +141,9 @@ func (x *ESItemDAL) SaveItems(items ...*amazon.ItemDTO) error {
 // }
 
 func (x *ESItemDAL) DeleteItems(items ...*amazon.ItemDTO) error {
+	if len(items) == 0 {
+		return nil
+	}
 	bulkService := x.esClient.Bulk().Index(_itemIndex)
 
 	for _, item := range items {

@@ -107,6 +107,9 @@ func (x *ESItemDAL) GetAllItems(in *model.ItemQuery) (*model.ItemQueryResult, er
 }
 
 func (x *ESItemDAL) SaveItems(items ...*model.ItemDTO) error {
+	if len(items) == 0 {
+		return nil
+	}
 	bulkService := x.esClient.Bulk().Index(_itemIndex)
 
 	for _, item := range items {
@@ -123,21 +126,11 @@ func (x *ESItemDAL) SaveItems(items ...*model.ItemDTO) error {
 	return err
 }
 
-// func (x *ESItemDAL) SaveItem(item *model.ItemDTO) error {
-// 	updateService := x.esClient.Update().Index(_itemIndex).
-// 		Id(item.SKU).
-// 		Type("items").
-// 		Doc(map[string]interface{}{"Status": item.Status})
-// 	resp, err := updateService.Do(context.Background())
-// 	if err != nil {
-// 		return err
-// 	} else {
-// 		log.Debug(resp.Result)
-// 	}
-// 	return err
-// }
-
 func (x *ESItemDAL) DeleteItems(items ...*model.ItemDTO) error {
+	if len(items) == 0 {
+		return nil
+	}
+
 	bulkService := x.esClient.Bulk().Index(_itemIndex)
 
 	for _, item := range items {

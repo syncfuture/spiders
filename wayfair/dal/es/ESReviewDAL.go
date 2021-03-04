@@ -105,6 +105,9 @@ func (x *ESReviewDAL) GetAllReviews(in *model.ReviewQuery) (*model.ReviewQueryRe
 }
 
 func (x *ESReviewDAL) SaveReviews(reviews ...*model.ReviewDTO) error {
+	if len(reviews) == 0 {
+		return nil
+	}
 	bulkService := x.esClient.Bulk().Index(_reviewIndex)
 
 	for _, review := range reviews {

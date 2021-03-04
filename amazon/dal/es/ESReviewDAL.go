@@ -27,6 +27,10 @@ func NewESReviewDAL(options ...elastic.ClientOptionFunc) (dal.IReviewDAL, error)
 }
 
 func (x *ESReviewDAL) SaveReviews(reviews []*amazon.ReviewDTO) error {
+	if len(reviews) == 0 {
+		return nil
+	}
+
 	bulkService := x.esClient.Bulk().Index(_reviewIndex)
 
 	for _, review := range reviews {

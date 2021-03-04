@@ -158,7 +158,7 @@ func (x *ReviewsScraper) FetchReviews(item *model.ItemDTO, from time.Time) (r []
 		for loadReviews(mainCtx, from) { // 循环点击加载更多按钮
 		}
 
-		log.Debugf("%s got %d reviews", url, len(dic))
+		log.Debugf("[%s] %s got %d reviews", proxy.Host, url, len(dic))
 
 		return err
 	})
@@ -199,13 +199,13 @@ func captureReviewsFromAjax(ev interface{}, mainCtx context.Context, item *model
 
 		if resp != nil && resp.Data != nil && resp.Data.Product != nil && resp.Data.Product.CustomerReviews != nil && len(resp.Data.Product.CustomerReviews.Reviews) > 0 { // 再次排除非Review Ajax请求
 			for _, review := range resp.Data.Product.CustomerReviews.Reviews {
-				date, err := time.Parse("01/02/2006", review.Date)
+				var err error
+				review.CreatedOn, err = time.Parse("01/02/2006", review.Date)
 				if err != nil {
 					log.Errorf("%d parse date failed: %s", review.ReviewID, err.Error())
 					continue
 				}
-				review.CreatedOnUTC = date.UTC()
-				if review.CreatedOnUTC.After(from.UTC()) {
+				if review.CreatedOn.After(from) {
 					review.SKU = item.SKU
 					review.Items = item.Items
 					(*dic)[review.ReviewID] = review // 添加进结果
