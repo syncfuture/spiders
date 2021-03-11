@@ -11,6 +11,7 @@ import (
 	"github.com/kataras/iris/v12"
 	"github.com/olivere/elastic/v7"
 	"github.com/syncfuture/go/sconfig"
+	log "github.com/syncfuture/go/slog"
 	"github.com/syncfuture/go/spool"
 	"github.com/syncfuture/go/stask"
 	"github.com/syncfuture/go/u"
@@ -28,10 +29,11 @@ type wayfairHttpHandlers struct {
 	reviewDAL     dal.IReviewDAL
 	itemDAL       dal.IItemDAL
 	scrapeLocker  *sync.Mutex
-	// proxyStore    store.IProxyStore
 	CDPClient     *scdp.ChromeDPClient
-	maxConcurrent int
 	bufferPool    spool.BufferPool
+	status        *scrapeStatus
+	scheduler     stask.ISliceScheduler
+	maxConcurrent int
 }
 
 func NewWayfairHttpHandlers(cp sconfig.IConfigProvider, proxyStore store.IProxyStore) *wayfairHttpHandlers {
@@ -54,10 +56,11 @@ func NewWayfairHttpHandlers(cp sconfig.IConfigProvider, proxyStore store.IProxyS
 		itemDAL:       itemDAL,
 		reviewDAL:     reviewDAL,
 		scrapeLocker:  new(sync.Mutex),
-		// proxyStore:    proxyStore,
 		CDPClient:     scdp.NewChromeDPClient(cp, proxyStore),
-		maxConcurrent: cp.GetIntDefault("WayfairMaxConcurrent", 1),
 		bufferPool:    spool.NewSyncBufferPool(4096),
+		status:        new(scrapeStatus),
+		maxConcurrent: cp.GetIntDefault("WayfairMaxConcurrent", 1),
+		// scheduler:     stask.NewFlowScheduler(cp.GetIntDefault("WayfairMaxConcurrent", 1)),
 	}
 }
 
@@ -107,6 +110,8 @@ func (x *wayfairHttpHandlers) PostScrape(ctx iris.Context) {
 	x.scrapeLocker.Lock()
 	defer x.scrapeLocker.Unlock()
 
+	x.status = new(scrapeStatus)
+
 	query := x.getItemQuery(ctx)
 	result, err := x.itemDAL.GetAllItems(query)
 	if u.LogError(err) {
@@ -114,43 +119,62 @@ func (x *wayfairHttpHandlers) PostScrape(ctx iris.Context) {
 		return
 	}
 
-	count := int32(0)
+	x.status.TotalCount = result.TotalCount
+	x.scheduler = stask.NewFlowScheduler(x.maxConcurrent)
+
 	fromDate := time.Now().AddDate(0, -1, 0) // 一个月内的评论
 
-	f := stask.NewFlowScheduler(x.maxConcurrent)
-	f.SliceRun(&result.Items, func(i int, v interface{}) {
-		item := v.(*model.ItemDTO)
+	go func() {
+		x.scheduler.SliceRun(&result.Items, func(i int, v interface{}) {
+			log.Debugf("%d/%d", i, x.status.TotalCount)
+			defer atomic.AddInt32(&x.status.Current, 1)
+			item := v.(*model.ItemDTO)
 
-		atomic.AddInt32(&count, 1)
-
-		s := wayfair.NewReviewsScraper(x.CDPClient)
-		reviews, err := s.FetchReviews(item, fromDate)
-		if u.LogError(err) {
-			if err.Error() == _notFoundError {
-				item.Status = 404
-			} else {
-				item.Status = -1
-			}
-			x.itemDAL.SaveItems(item)
-			return
-		}
-
-		if len(reviews) > 0 { // 有评论才存储
-			err = x.reviewDAL.SaveReviews(reviews...)
+			s := wayfair.NewReviewsScraper(x.CDPClient)
+			reviews, err := s.FetchReviews(item, fromDate)
 			if u.LogError(err) {
-				item.Status = -1
+				if err.Error() == _notFoundError {
+					item.Status = 404
+				} else {
+					item.Status = -1
+				}
 				x.itemDAL.SaveItems(item)
 				return
 			}
-		}
 
-		item.Status = 1
-		x.itemDAL.SaveItems(item)
-	})
+			if len(reviews) > 0 { // 有评论才存储
+				err = x.reviewDAL.SaveReviews(reviews...)
+				if u.LogError(err) {
+					item.Status = -1
+					x.itemDAL.SaveItems(item)
+					return
+				}
+			}
+
+			item.Status = 1
+			x.itemDAL.SaveItems(item)
+		})
+	}()
 
 	ctx.ContentType("application/json; charset=utf-8")
-	json := fmt.Sprintf(`{"count":%d}`, count)
-	ctx.WriteString(json)
+	data, _ := json.Marshal(x.status)
+	ctx.Write(data)
+}
+
+func (x *wayfairHttpHandlers) PostCancel(ctx iris.Context) {
+	if x.scheduler != nil {
+		x.scheduler.Cancel()
+		x.status.Reset()
+	}
+}
+
+func (x *wayfairHttpHandlers) GetStatus(ctx iris.Context) {
+	if x.status.Current >= int32(x.status.TotalCount) {
+		x.status.Reset()
+	}
+	ctx.ContentType("application/json; charset=utf-8")
+	data, _ := json.Marshal(x.status)
+	ctx.Write(data)
 }
 
 func (x *wayfairHttpHandlers) ExportReviews(ctx iris.Context) {
@@ -273,4 +297,14 @@ func (x *wayfairHttpHandlers) getReviewQuery(ctx iris.Context) *model.ReviewQuer
 		ItemNo:   itemNo,
 		FromDate: fromDate,
 	}
+}
+
+type scrapeStatus struct {
+	Current    int32
+	TotalCount int64
+}
+
+func (x *scrapeStatus) Reset() {
+	x.Current = 0
+	x.TotalCount = 0
 }

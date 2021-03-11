@@ -5,9 +5,10 @@
         "DetailLevel": "warn"
     },
     "ES": {
-        "Addrs": ["http://sa:Famous901@localhost:9200"]
+        "Addrs": ["http://sa:Famous901@192.168.188.200:9200"]
     },
     "AmazonMaxConcurrent": 15,
     "WayfairMaxConcurrent": 1,
+    "Timeout": 60000,
     "ListenAddr": ":7000"
 }

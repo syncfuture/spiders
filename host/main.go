@@ -70,6 +70,8 @@ func main() {
 	wayfairAPI.Post("/reviews/export", wayfairHttpHandler.ExportReviews)
 	wayfairAPI.Get("/items", wayfairHttpHandler.GetItems)
 	wayfairAPI.Post("/scrape", wayfairHttpHandler.PostScrape)
+	wayfairAPI.Post("/scrape/cancel", wayfairHttpHandler.PostCancel)
+	wayfairAPI.Get("/scrape/status", wayfairHttpHandler.GetStatus)
 
 	app.Run(iris.Addr(_listenAddr))
 }

@@ -86,8 +86,8 @@ export async function wayfairGetItems(query: any) {
     return r;
 }
 
-export function wayfairScrape(args: any) {
-    request.post('/wayfair/scrape', {
+export async function wayfairScrape(args: any) {
+    const r = request.post('/wayfair/scrape', {
         data: args,
         requestType: "form",
     })
@@ -97,4 +97,27 @@ export function wayfairScrape(args: any) {
         .catch(function (err) {
             console.error(err);
         });
+    return r;
+}
+
+export async function wayfairCancel() {
+    await request.post('/wayfair/scrape/cancel')
+        .then(function (resp) {
+            return resp;
+        })
+        .catch(function (err) {
+            console.error(err);
+        });
+}
+
+
+export async function wayfairGetScrapeStatus() {
+    const r = request.get('/wayfair/scrape/status')
+        .then(function (resp) {
+            return resp;
+        })
+        .catch(function (err) {
+            console.error(err);
+        });
+    return r;
 }

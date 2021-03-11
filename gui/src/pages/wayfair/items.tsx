@@ -1,13 +1,14 @@
 import React from 'react'
-import { Table, Select, Button, Input, Form, Card } from 'antd';
-import { connect, IItemListModelState, Dispatch, Loading } from 'umi';
+import { Table, Select, Button, Input, Form, Card, Progress, Space } from 'antd';
+import { connect, IWayfairItemListModelState, Dispatch, Loading } from 'umi';
 
 const { Option } = Select;
 
 interface IPageProps {
-  model: IItemListModelState;
+  model: IWayfairItemListModelState;
   loading: boolean;
   dispatch: Dispatch;
+  timeout: NodeJS.Timeout;
 }
 
 class ItemsPage<T extends IPageProps> extends React.Component<T> {
@@ -67,15 +68,36 @@ class ItemsPage<T extends IPageProps> extends React.Component<T> {
         ...values
       },
     });
+
+    // this.updateScrapeStatus();
   };
+
+  cancel = () => {
+    const { dispatch } = this.props;
+    dispatch({
+      type: 'wayfairItemList/cancel',
+    });
+  };
+
+  // updateScrapeStatus = () => {
+  //   const { dispatch, model } = this.props;
+  //   let { timeout } = this.props;
+
+  //   dispatch({
+  //     type: 'wayfairItemList/getScrapeStatus',
+  //   });
+
+  //   if (!model.running) {
+  //     clearTimeout(timeout);
+  //   } else {
+  //     timeout = setTimeout(this.updateScrapeStatus, 1000);
+  //   }
+  // };
 
   onShowSizeChange = (oldSize: number, newSize: number) => {
     const { dispatch } = this.props;
     dispatch({
-      type: 'wayfairItemList/setState',
-      payload: {
-        pageSize: newSize,
-      },
+      type: 'wayfairItemList/getScrapeStatus',
     });
   };
 
@@ -100,7 +122,10 @@ class ItemsPage<T extends IPageProps> extends React.Component<T> {
 
 
   render() {
-    const { model, loading } = this.props
+    const { model, loading } = this.props;
+    const { Current, TotalCount } = model.scrapeStatus;
+    let percent = TotalCount > 0 ? Math.floor((Current / TotalCount) * 100) : 0;
+
     return (
       <div>
         {/* <Card>
@@ -138,8 +163,12 @@ class ItemsPage<T extends IPageProps> extends React.Component<T> {
             <Form.Item>
               <Button type="primary" htmlType="submit">Search</Button>
             </Form.Item>
-            <Button onClick={this.scrape}>Scrape</Button>
+            <Space>
+              <Button onClick={this.scrape} disabled={model.running}>Scrape</Button>
+              <Button htmlType="button" disabled={!model.running} onClick={this.cancel}>Cancel</Button>
+            </Space>
           </Form>
+          {model.running ? <Progress percent={percent} size="small" /> : null}
         </Card>
         <Table
           dataSource={model.items}
@@ -160,7 +189,7 @@ class ItemsPage<T extends IPageProps> extends React.Component<T> {
   }
 }
 
-export default connect(({ wayfairItemList, loading }: { wayfairItemList: IItemListModelState; loading: Loading }) => ({
+export default connect(({ wayfairItemList, loading }: { wayfairItemList: IWayfairItemListModelState; loading: Loading }) => ({
   model: wayfairItemList,
   loading: loading.models.wayfairItemList,
 }))(ItemsPage as React.ComponentClass<any>);

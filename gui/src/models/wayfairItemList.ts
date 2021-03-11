@@ -1,33 +1,36 @@
-import { wayfairGetItems, wayfairScrape } from '@/services/api';
+import { wayfairCancel, wayfairGetItems, wayfairScrape, wayfairGetScrapeStatus } from '@/services/api';
 import { message } from 'antd'
 import { Reducer, Effect } from 'umi';
 
-export interface IItemListModelState {
+const delay = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
+
+export interface IWayfairItemListModelState {
     items: any[],
     totalCount: number,
     pageSize: number,
     status: string,
     sku: string,
     itemNo: string,
+    scrapeStatus: any,
+    running: boolean,
 }
 
 export interface IItemListModel {
     // namespace: 'wayfairItemList';
-    state: IItemListModelState;
+    state: IWayfairItemListModelState;
     effects: {
         getItems: Effect;
-        // loadMore: Effect;
-        // search: Effect;
         scrape: Effect;
+        cancel: Effect;
+        getScrapeStatus: Effect;
     };
     reducers: {
-        setState: Reducer<IItemListModelState>;
+        setState: Reducer<IWayfairItemListModelState>;
     };
 }
 
 const ItemListModel: IItemListModel = {
     // namespace: 'wayfairItemList',
-
     state: {
         items: [],
         totalCount: 0,
@@ -35,23 +38,12 @@ const ItemListModel: IItemListModel = {
         status: "",
         sku: "",
         itemNo: "",
+        scrapeStatus: { Current: 0, TotalCount: 0 },
+        running: false,
     },
 
     effects: {
-        // *search({ _ }, { call, put, select }) {
-        //     const state = yield select((x: any) => x["wayfairItemList"]);
-        //     const query = {
-        //         pageSize: state.pageSize,
-        //         status: state.status,
-        //         sku: state.sku,
-        //         itemNo: state.itemNo,
-        //         searchAfter: "",
-        //     };
-
-        //     const resp = yield call(getItems, query);
-        //     yield put({ type: 'setState', payload: { items: resp.Items, totalCount: resp.TotalCount } });
-        // },
-        *scrape({ _ }, { call, select }) {
+        *scrape({ _ }, { call, put, select }) {
             const state = yield select((x: any) => x["wayfairItemList"]);
             const query = {
                 status: state.status,
@@ -59,12 +51,26 @@ const ItemListModel: IItemListModel = {
                 itemNo: state.itemNo,
             };
 
-            yield call(wayfairScrape, query);
+            yield put({ type: 'setState', payload: { running: true } });
+            const resp = yield call(wayfairScrape, query);
+            console.log(resp);
 
             message.success("reviews scraping started");
+
+            yield put({ type: 'getScrapeStatus' });
+        },
+        *getScrapeStatus({ _ }, { call, put, select }) {
+            const resp = yield call(wayfairGetScrapeStatus);
+            const running = resp.Current < resp.TotalCount;
+            yield put({ type: 'setState', payload: { scrapeStatus: resp, running: running } });
+
+            if (running) {
+                yield delay(1000);
+                yield put({ type: 'getScrapeStatus' });
+            }
         },
         *getItems({ _ }, { call, put, select }) {
-            const state = (yield select((x: any) => x["wayfairItemList"])) as IItemListModelState;
+            const state = (yield select((x: any) => x["wayfairItemList"])) as IWayfairItemListModelState;
             const query = {
                 status: state.status,
                 sku: state.sku,
@@ -73,22 +79,10 @@ const ItemListModel: IItemListModel = {
             const resp = yield call(wayfairGetItems, query);
             yield put({ type: 'setState', payload: { items: resp.Items ?? [], totalCount: resp.TotalCount } });
         },
-        // *loadMore({ _ }, { call, put, select }) {
-        //     const state = (yield select((x: any) => x["wayfairItemList"])) as IItemListModelState;
-        //     const query = {
-        //         pageSize: state.pageSize,
-        //         status: state.status,
-        //         sku: state.sku,
-        //         itemNo: state.itemNo,
-        //         cusor: "",
-        //     };
-        //     if (state.items.length > 0) {
-        //         query.searchAfter = state.items[state.items.length - 1].SearchAfter;
-        //     }
-        //     const resp = yield call(getItems, query);
-        //     const items = state.items.concat(resp.Items ?? []);
-        //     yield put({ type: 'setState', payload: { items: items, totalCount: resp.TotalCount } });
-        // },
+        *cancel({ _ }, { call, put, select }) {
+            yield call(wayfairCancel);
+            yield put({ type: 'setState', payload: { scrapeStatus: { Current: 0, TotalCount: 0 } } });
+        },
     },
     reducers: {
         setState(state, action) {

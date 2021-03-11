@@ -3,6 +3,7 @@ package wayfair
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"regexp"
 	"strconv"
@@ -113,18 +114,29 @@ func (x *ReviewsScraper) FetchReviews(item *model.ItemDTO, from time.Time) (r []
 		}
 
 		// 检查是否被人机验证阻止
-		captchaNodes := scdp.GetNodesWithAuth(mainCtx, "h1.Captcha-title")
-		if len(captchaNodes) > 0 {
+		// captchaNodes := scdp.GetNodesWithAuth(mainCtx, "h1.Captcha-title")
+		// if len(captchaNodes) > 0 {
+		// 	log.Warnf("%s blocked by captcha", proxy.Host)
+		// 	proxy.Blocked = true
+		// 	return err
+		// }
+
+		err = chromedp.Run(mainCtx,
+			chromedp.Location(&item.URL), // 更新item的URL
+		)
+
+		if strings.Contains(item.URL, "https://www.wayfair.com/v/captcha") {
 			log.Warnf("%s blocked by captcha", proxy.Host)
 			proxy.Blocked = true
-			return err
+			return errors.New("BLOCKED")
+		} else if strings.Contains(item.URL, "https://www.wayfair.com/furniture/") ||
+			strings.Contains(item.URL, "https://www.wayfair.com/bed-bath/") {
+			return errors.New("NO DETAIL PAGE")
 		}
 
 		var reviewStats string
 		err = chromedp.Run(mainCtx,
 			chromedp.Location(&item.URL), // 更新item的URL
-			chromedp.WaitVisible(".ReviewStats", chromedp.ByQuery),
-			chromedp.Text(".ReviewStats", &reviewStats, chromedp.ByQuery), // 获取评论数
 		)
 		if u.LogError(err) {
 			return err

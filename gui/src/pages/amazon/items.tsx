@@ -1,11 +1,11 @@
 import React from 'react'
 import { Table, Select, Button, Input, Form, Card } from 'antd';
-import { connect, IItemListModelState, Dispatch, Loading } from 'umi';
+import { connect, IAmazonItemListModelState, Dispatch, Loading } from 'umi';
 
 const { Option } = Select;
 
 interface IPageProps {
-  model: IItemListModelState;
+  model: IAmazonItemListModelState;
   loading: boolean;
   dispatch: Dispatch;
 }
@@ -160,7 +160,7 @@ class ItemsPage<T extends IPageProps> extends React.Component<T> {
   }
 }
 
-export default connect(({ amazonItemList, loading }: { amazonItemList: IItemListModelState; loading: Loading }) => ({
+export default connect(({ amazonItemList, loading }: { amazonItemList: IAmazonItemListModelState; loading: Loading }) => ({
   model: amazonItemList,
   loading: loading.models.amazonItemList,
 }))(ItemsPage as React.ComponentClass<any>);

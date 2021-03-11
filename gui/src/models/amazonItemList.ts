@@ -2,7 +2,7 @@ import { amazonGetItems, amazonScrape } from '@/services/api';
 import { message } from 'antd'
 import { Reducer, Effect } from 'umi';
 
-export interface IItemListModelState {
+export interface IAmazonItemListModelState {
     items: any[],
     totalCount: number,
     pageSize: number,
@@ -13,7 +13,7 @@ export interface IItemListModelState {
 
 export interface IItemListModel {
     // namespace: 'amazonItemList';
-    state: IItemListModelState;
+    state: IAmazonItemListModelState;
     effects: {
         getItems: Effect;
         // loadMore: Effect;
@@ -21,7 +21,7 @@ export interface IItemListModel {
         scrape: Effect;
     };
     reducers: {
-        setState: Reducer<IItemListModelState>;
+        setState: Reducer<IAmazonItemListModelState>;
     };
 }
 
@@ -64,7 +64,7 @@ const ItemListModel: IItemListModel = {
             message.success("reviews scraping started");
         },
         *getItems({ _ }, { call, put, select }) {
-            const state = (yield select((x: any) => x["amazonItemList"])) as IItemListModelState;
+            const state = (yield select((x: any) => x["amazonItemList"])) as IAmazonItemListModelState;
             const query = {
                 status: state.status,
                 asin: state.asin,

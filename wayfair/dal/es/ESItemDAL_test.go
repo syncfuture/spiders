@@ -62,7 +62,7 @@ func TestImport(t *testing.T) {
 	}
 
 	esDAL, err := NewESItemDAL(
-		elastic.SetURL("http://sa:Famous901@localhost:9200"),
+		elastic.SetURL("http://sa:Famous901@192.168.188.200:9200"),
 		elastic.SetSniff(false),
 	)
 	if u.LogError(err) {

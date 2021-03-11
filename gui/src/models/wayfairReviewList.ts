@@ -83,7 +83,7 @@ const ReviewListModel: IReviewListModel = {
             f.remove();
 
             return state;
-        }
+        },
     },
     // subscriptions: {
     //     setup({ dispatch, history }) {
