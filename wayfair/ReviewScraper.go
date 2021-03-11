@@ -31,6 +31,8 @@ const (
 
 var (
 	_reviewCountRegex = regexp.MustCompile(`(\d+) Reviews`)
+	_errBlocked       = errors.New("BLOCKED")
+	_errNotFound      = errors.New("NOT FOUND")
 )
 
 type skuBase struct {
@@ -64,10 +66,10 @@ func (x *ReviewsScraper) FetchReviews(item *model.ItemDTO, from time.Time) (r []
 		// 跳转去产品页
 		var url string
 		if item.URL == "" {
-			url = fmt.Sprintf(_urlFormat, item.SKU)
+			url = generateURL(item)
 		} else {
-			if strings.Contains(item.URL, "/sb0/") { // 跳转去了列表页，直接返回错误
-				return errors.New("NO DETAIL PAGE")
+			if notFound(item.URL) { // 跳转去了列表页，直接返回错误
+				return _errNotFound
 			}
 			url = item.URL
 		}
@@ -95,12 +97,13 @@ func (x *ReviewsScraper) FetchReviews(item *model.ItemDTO, from time.Time) (r []
 			return err
 		}
 
-		if strings.Contains(item.URL, "/captcha/") {
+		if blocked(item.URL) {
+			item.URL = url // 恢复URL
 			// log.Debugf("%s blocked by captcha", proxy.Host)
 			proxy.Blocked = true
-			return errors.New("BLOCKED")
-		} else if strings.Contains(item.URL, "/sb0/") { // 跳转去了列表页，直接返回错误
-			return errors.New("NO DETAIL PAGE")
+			return _errBlocked
+		} else if notFound(item.URL) { // 跳转去了列表页，直接返回错误
+			return _errNotFound
 		}
 
 		var reviewStats string
@@ -172,7 +175,7 @@ func captureReviewsFromAjax(ev interface{}, mainCtx context.Context, item *model
 		if err != nil {
 			var e1 *cdproto.Error
 			if errors.As(err, &e1) {
-				if e1.Code == -3200 {
+				if e1.Code == -32000 {
 					return
 				}
 			}
@@ -235,4 +238,17 @@ func loadMore(ctx context.Context) bool {
 		// 没有加载按钮
 		return false
 	}
+}
+
+func blocked(url string) bool {
+	return strings.Contains(url, "/captcha/")
+}
+
+func notFound(url string) bool {
+	// return strings.Contains(url, "/sb0/") || strings.Contains(url, "/cat/") || url == "https://www.wayfair.com/" || url == "https://www.wayfair.com/?"
+	return !strings.Contains(url, "/pdp/")
+}
+
+func generateURL(item *model.ItemDTO) string {
+	return fmt.Sprintf(_urlFormat, item.SKU)
 }

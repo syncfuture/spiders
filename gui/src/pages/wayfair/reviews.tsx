@@ -71,7 +71,7 @@ class ReviewsPage<T extends IPageProps> extends React.Component<T> {
   };
 
   disabledDate = (current: any) => {
-    return current < moment().add(-1, "month").add(-1, "d") || current > moment();
+    return current < moment().add(-2, "month").add(-1, "d") || current > moment();
   }
 
   _columns: any[] = [
@@ -119,10 +119,13 @@ class ReviewsPage<T extends IPageProps> extends React.Component<T> {
     },
     {
       title: 'CreatedOn',
-      dataIndex: 'createdOn',
+      dataIndex: 'date',
       width: 100,
-      sorter: (a: any, b: any) => a.createdOn.localeCompare(b.createdOn),
-      render: (_: any, x: any) => <label>{moment(x.CreatedOn).format("MM/DD/YYYY")}</label>,
+      sorter: (a: any, b: any) => a.date.localeCompare(b.date),
+      // render: (_: any, x: any) => {
+      //   console.log(x);
+      //   return <label>{moment(x.CreatedOn).format("MM/DD/YYYY")}</label>;
+      // },
     },
   ];
 

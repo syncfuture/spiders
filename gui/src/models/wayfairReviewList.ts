@@ -36,7 +36,7 @@ const ReviewListModel: IReviewListModel = {
         status: "",
         sku: "",
         itemNo: "",
-        fromDate: moment().add(-1, "M").format("YYYY-MM-DD"),
+        fromDate: moment().add(-2, "M").format("YYYY-MM-DD"),
     },
 
     effects: {
