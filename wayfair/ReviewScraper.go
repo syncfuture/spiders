@@ -10,6 +10,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/chromedp/cdproto"
 	"github.com/chromedp/cdproto/cdp"
 	"github.com/chromedp/cdproto/network"
 	"github.com/chromedp/chromedp"
@@ -23,8 +24,9 @@ import (
 const (
 	// _expError   = "ERR_INVALID_AUTH_CREDENTIALS"
 	// _retryError = "ERR_TOO_MANY_RETRIES"
-	_urlFormat = "https://www.wayfair.com/category/pdp/product-%s.html"
-	_ajaxURL   = "https://www.wayfair.com/graphql?hash="
+	_urlFormat  = "https://www.wayfair.com/category/pdp/product-%s.html"
+	_ajaxURL    = "https://www.wayfair.com/graphql?hash="
+	_dateFormat = "01/02/2006"
 )
 
 var (
@@ -57,44 +59,6 @@ func (x *ReviewsScraper) FetchReviews(item *model.ItemDTO, from time.Time) (r []
 		chromedp.ListenTarget(mainCtx, func(ev interface{}) {
 			go captureReviewsFromAjax(ev, mainCtx, item, from, &dic)
 		})
-		// chromedp.ListenTarget(mainCtx, func(ev interface{}) {
-		// 	go func() {
-		// 		switch ev := ev.(type) {
-
-		// 		case *network.EventResponseReceived:
-		// 			if ev.Response.Status != 200 || !strings.Contains(ev.Response.URL, _ajaxURL) {
-		// 				return
-		// 			}
-		// 			c := chromedp.FromContext(mainCtx)
-		// 			data, err := network.GetResponseBody(ev.RequestID).Do(cdp.WithExecutor(mainCtx, c.Target))
-		// 			if u.LogError(err) {
-		// 				return
-		// 			}
-		// 			var resp *model.ReviewResp
-		// 			err = json.Unmarshal(data, &resp)
-		// 			if u.LogError(err) {
-		// 				return
-		// 			}
-
-		// 			if resp != nil && resp.Data != nil && resp.Data.Product != nil && resp.Data.Product.CustomerReviews != nil && len(resp.Data.Product.CustomerReviews.Reviews) > 0 {
-		// 				// reviews[]
-		// 				for _, review := range resp.Data.Product.CustomerReviews.Reviews {
-		// 					date, err := time.Parse("01/02/2006", review.Date)
-		// 					if err != nil {
-		// 						log.Errorf("%d parse date failed: %s", review.ReviewID, err.Error())
-		// 						continue
-		// 					}
-		// 					if date.After(from) {
-		// 						review.SKU = item.SKU
-		// 						review.Items = item.Items
-		// 						dic[review.ReviewID] = review
-		// 					}
-		// 				}
-		// 			}
-		// 		}
-		// 	}()
-		// 	// other needed network Event
-		// })
 
 		// client.FetchWithHead(func(ctx context.Context) {
 		// 跳转去产品页
@@ -102,6 +66,9 @@ func (x *ReviewsScraper) FetchReviews(item *model.ItemDTO, from time.Time) (r []
 		if item.URL == "" {
 			url = fmt.Sprintf(_urlFormat, item.SKU)
 		} else {
+			if strings.Contains(item.URL, "/sb0/") { // 跳转去了列表页，直接返回错误
+				return errors.New("NO DETAIL PAGE")
+			}
 			url = item.URL
 		}
 		err := scdp.NavigateWithAuth(mainCtx, url, 1920, 936)
@@ -124,21 +91,24 @@ func (x *ReviewsScraper) FetchReviews(item *model.ItemDTO, from time.Time) (r []
 		err = chromedp.Run(mainCtx,
 			chromedp.Location(&item.URL), // 更新item的URL
 		)
+		if err != nil {
+			return err
+		}
 
-		if strings.Contains(item.URL, "https://www.wayfair.com/v/captcha") {
-			log.Warnf("%s blocked by captcha", proxy.Host)
+		if strings.Contains(item.URL, "/captcha/") {
+			// log.Debugf("%s blocked by captcha", proxy.Host)
 			proxy.Blocked = true
 			return errors.New("BLOCKED")
-		} else if strings.Contains(item.URL, "https://www.wayfair.com/furniture/") ||
-			strings.Contains(item.URL, "https://www.wayfair.com/bed-bath/") {
+		} else if strings.Contains(item.URL, "/sb0/") { // 跳转去了列表页，直接返回错误
 			return errors.New("NO DETAIL PAGE")
 		}
 
 		var reviewStats string
 		err = chromedp.Run(mainCtx,
-			chromedp.Location(&item.URL), // 更新item的URL
+			chromedp.WaitVisible(".ReviewStats", chromedp.ByQuery),
+			chromedp.Text(".ReviewStats", &reviewStats, chromedp.ByQuery), // 获取评论数
 		)
-		if u.LogError(err) {
+		if err != nil {
 			return err
 		}
 		reviewStatsMatches := _reviewCountRegex.FindStringSubmatch(reviewStats)
@@ -147,7 +117,7 @@ func (x *ReviewsScraper) FetchReviews(item *model.ItemDTO, from time.Time) (r []
 			return nil
 		}
 		count, err := strconv.Atoi(reviewStatsMatches[1])
-		if u.LogError(err) {
+		if err != nil {
 			return err
 		} else if count <= 0 {
 			// 没有评论，不做后续处理
@@ -170,9 +140,8 @@ func (x *ReviewsScraper) FetchReviews(item *model.ItemDTO, from time.Time) (r []
 		for loadReviews(mainCtx, from) { // 循环点击加载更多按钮
 		}
 
-		log.Debugf("[%s] %s got %d reviews", proxy.Host, url, len(dic))
-
-		return err
+		log.Debugf("[%s] %s got %d reviews", proxy.Host, item.URL, len(dic))
+		return nil
 	})
 
 	x.CDPClient.ProxyStore.Return(proxy)
@@ -200,7 +169,14 @@ func captureReviewsFromAjax(ev interface{}, mainCtx context.Context, item *model
 		}
 		c := chromedp.FromContext(mainCtx)
 		data, err := network.GetResponseBody(ev.RequestID).Do(cdp.WithExecutor(mainCtx, c.Target)) // 获取Response Body数据
-		if u.LogError(err) {
+		if err != nil {
+			var e1 *cdproto.Error
+			if errors.As(err, &e1) {
+				if e1.Code == -3200 {
+					return
+				}
+			}
+			log.Errorf("%s: %s", item.SKU, err.Error())
 			return
 		}
 		var resp *model.ReviewResp
@@ -212,7 +188,7 @@ func captureReviewsFromAjax(ev interface{}, mainCtx context.Context, item *model
 		if resp != nil && resp.Data != nil && resp.Data.Product != nil && resp.Data.Product.CustomerReviews != nil && len(resp.Data.Product.CustomerReviews.Reviews) > 0 { // 再次排除非Review Ajax请求
 			for _, review := range resp.Data.Product.CustomerReviews.Reviews {
 				var err error
-				review.CreatedOn, err = time.Parse("01/02/2006", review.Date)
+				review.CreatedOn, err = time.Parse(_dateFormat, review.Date)
 				if err != nil {
 					log.Errorf("%d parse date failed: %s", review.ReviewID, err.Error())
 					continue
@@ -235,7 +211,7 @@ func loadReviews(ctx context.Context, from time.Time) bool {
 	if count > 0 {
 		lastReviewNode := reviewNodes[count-1]
 		dateText := scdp.GetTextWithAuth(ctx, `.ProductReview-reviewDetails p[data-hb-id="pl-text"]`, chromedp.FromNode(lastReviewNode))
-		date, _ := time.Parse("01/02/2006", dateText)
+		date, _ := time.Parse(_dateFormat, dateText)
 		if date.After(from) {
 			return loadMore(ctx)
 		}

@@ -8,6 +8,7 @@ Write-Host "#: done"
 
 Set-Location ../host
 go build -ldflags="-s -w"
-upx ./host.exe
+#upx ./host.exe
 
+Move-Item ./host.exe D:\Users\Lukiya\Desktop\spiders -Force
 Set-Location ../
