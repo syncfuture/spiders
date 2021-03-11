@@ -8,6 +8,6 @@ Write-Host "#: done"
 
 Set-Location ../host
 go build -ldflags="-s -w"
-# upx ./host.exe
+upx ./host.exe
 
 Set-Location ../

@@ -6,6 +6,7 @@ type ItemDTO struct {
 	ItemNOs string
 	SKU     string
 	URL     string
+	Error   string
 	Status  int
 }
 

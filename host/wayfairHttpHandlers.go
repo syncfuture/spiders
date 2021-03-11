@@ -138,6 +138,7 @@ func (x *wayfairHttpHandlers) PostScrape(ctx iris.Context) {
 				} else {
 					item.Status = -1
 				}
+				item.Error = err.Error()
 				x.itemDAL.SaveItems(item)
 				return
 			}

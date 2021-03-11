@@ -8,7 +8,7 @@
         "Addrs": ["http://sa:Famous901@192.168.188.200:9200"]
     },
     "AmazonMaxConcurrent": 15,
-    "WayfairMaxConcurrent": 1,
+    "WayfairMaxConcurrent": 5,
     "Timeout": 60000,
     "ListenAddr": ":7000"
 }
