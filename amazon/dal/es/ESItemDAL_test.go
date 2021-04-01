@@ -14,7 +14,7 @@ import (
 
 func TestESItemDAL_ImportItems(t *testing.T) {
 	esDAL, err := NewESItemDAL(
-		elastic.SetURL("http://192.168.188.200:9200"),
+		elastic.SetURL("http://sa:Famous901@192.168.188.200:9200"),
 	)
 	if u.LogError(err) {
 		return
@@ -37,8 +37,8 @@ func TestESItemDAL_ImportItems(t *testing.T) {
 			strs = append(strs, text)
 		}
 		items = append(items, &amazon.ItemDTO{
-			ItemNo: strings.TrimSpace(strs[1]),
-			ASIN:   strings.TrimSpace(strs[3]),
+			ItemNo: strings.TrimSpace(strs[2]),
+			ASIN:   strings.TrimSpace(strs[1]),
 		})
 	}
 
