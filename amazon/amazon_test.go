@@ -7,7 +7,8 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/syncfuture/go/sconfig"
 	log "github.com/syncfuture/go/slog"
-	"github.com/syncfuture/scraper/store/webshare"
+	"github.com/syncfuture/scraper/store"
+	"github.com/syncfuture/scraper/store/grpc"
 )
 
 const (
@@ -16,12 +17,13 @@ const (
 )
 
 var (
-	_testStore = webshare.NewWebShareProxyStore(_testWebshareKey)
+	_testStore store.IProxyStore
 )
 
 func init() {
 	cp := sconfig.NewJsonConfigProvider()
 	log.Init(cp)
+	_testStore = grpc.NewGRPCProxyStore("192.168.188.200:5560", "webshare")
 }
 
 func TestReviewsScraper_FetchPage(t *testing.T) {

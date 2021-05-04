@@ -5,7 +5,6 @@ import (
 	"testing"
 	"time"
 
-	"github.com/chromedp/cdproto/cdp"
 	"github.com/chromedp/cdproto/fetch"
 	"github.com/chromedp/chromedp"
 	"github.com/olivere/elastic/v7"
@@ -14,7 +13,7 @@ import (
 	log "github.com/syncfuture/go/slog"
 	"github.com/syncfuture/go/u"
 	"github.com/syncfuture/scraper/scdp"
-	"github.com/syncfuture/scraper/store/webshare"
+	"github.com/syncfuture/scraper/store/grpc"
 	"github.com/syncfuture/spiders/wayfair/dal/es"
 	"github.com/syncfuture/spiders/wayfair/model"
 )
@@ -23,8 +22,8 @@ func TestGetReviews(t *testing.T) {
 	cp := sconfig.NewJsonConfigProvider()
 	log.Init(cp)
 
-	store := webshare.NewDefaultWebShareProxyStore()
-	t.Log(store)
+	// store := webshare.NewDefaultWebShareProxyStore()
+	// t.Log(store)
 
 	itemDAL, err := es.NewESItemDAL(
 		elastic.SetURL("http://sa:Famous901@localhost:9200"),
@@ -50,6 +49,7 @@ func TestGetReviews(t *testing.T) {
 
 	assert.NotEmpty(t, rs)
 
+	store := grpc.NewGRPCProxyStore("192.168.188.200:5560", "soax")
 	client := scdp.NewChromeDPClient(cp, store)
 	scraper := NewReviewsScraper(client)
 	from := time.Now().Add(time.Hour * 24 * -30)
@@ -88,8 +88,9 @@ func aaa(ctx context.Context) error {
 }
 
 func run(action func(ctx context.Context) error) error {
-	store := webshare.NewDefaultWebShareProxyStore()
-	proxy := store.Lease()
+	store := grpc.NewGRPCProxyStore("192.168.188.200:5560", "soax")
+	// store := webshare.NewDefaultWebShareProxyStore()
+	proxy := store.Rent()
 	defer store.Return(proxy)
 
 	timeoutCtx, cancel1 := context.WithTimeout(context.Background(), time.Second*60)
@@ -124,7 +125,7 @@ func run(action func(ctx context.Context) error) error {
 		chromedp.Flag("use-mock-keychain", true),
 
 		chromedp.Flag("incognito", true),
-		chromedp.ProxyServer(proxy.Host),
+		chromedp.ProxyServer(proxy.URI),
 		chromedp.Flag("blink-settings", "imagesEnabled=false"),
 	)
 	defer cancel2()
@@ -132,30 +133,30 @@ func run(action func(ctx context.Context) error) error {
 	mainCtx, cancel3 := chromedp.NewContext(execCtx)
 	defer cancel3()
 
-	chromedp.ListenTarget(mainCtx, func(ev interface{}) {
-		go func() {
-			switch ev := ev.(type) {
-			case *fetch.EventAuthRequired:
-				c := chromedp.FromContext(mainCtx)
-				execCtx := cdp.WithExecutor(mainCtx, c.Target)
+	// chromedp.ListenTarget(mainCtx, func(ev interface{}) {
+	// 	go func() {
+	// 		switch ev := ev.(type) {
+	// 		case *fetch.EventAuthRequired:
+	// 			c := chromedp.FromContext(mainCtx)
+	// 			execCtx := cdp.WithExecutor(mainCtx, c.Target)
 
-				resp := &fetch.AuthChallengeResponse{
-					Response: fetch.AuthChallengeResponseResponseProvideCredentials,
-					Username: proxy.Username,
-					Password: proxy.Password,
-				}
+	// 			resp := &fetch.AuthChallengeResponse{
+	// 				Response: fetch.AuthChallengeResponseResponseProvideCredentials,
+	// 				Username: proxy.Username,
+	// 				Password: proxy.Password,
+	// 			}
 
-				err := fetch.ContinueWithAuth(ev.RequestID, resp).Do(execCtx)
-				u.LogError(err)
+	// 			err := fetch.ContinueWithAuth(ev.RequestID, resp).Do(execCtx)
+	// 			u.LogError(err)
 
-			case *fetch.EventRequestPaused:
-				c := chromedp.FromContext(mainCtx)
-				execCtx := cdp.WithExecutor(mainCtx, c.Target)
-				err := fetch.ContinueRequest(ev.RequestID).Do(execCtx)
-				u.LogError(err)
-			}
-		}()
-	})
+	// 		case *fetch.EventRequestPaused:
+	// 			c := chromedp.FromContext(mainCtx)
+	// 			execCtx := cdp.WithExecutor(mainCtx, c.Target)
+	// 			err := fetch.ContinueRequest(ev.RequestID).Do(execCtx)
+	// 			u.LogError(err)
+	// 		}
+	// 	}()
+	// })
 
 	return action(mainCtx)
 }

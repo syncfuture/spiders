@@ -8,17 +8,24 @@ import (
 	"sync/atomic"
 	"time"
 
-	"github.com/kataras/iris/v12"
+	"github.com/SyncSoftInc/proxy/protoc/proxy"
 	"github.com/olivere/elastic/v7"
 	"github.com/syncfuture/go/sconfig"
+	"github.com/syncfuture/go/shttp"
 	"github.com/syncfuture/go/spool"
 	"github.com/syncfuture/go/stask"
 	"github.com/syncfuture/go/u"
+	"github.com/syncfuture/host"
 	"github.com/syncfuture/scraper/store"
+	"github.com/syncfuture/scraper/store/grpc"
 	"github.com/syncfuture/spiders/amazon"
 	"github.com/syncfuture/spiders/amazon/dal"
 	"github.com/syncfuture/spiders/amazon/dal/es"
 	"github.com/tealeg/xlsx"
+)
+
+var (
+	ProxyServiceClient proxy.ProxyServiceClient
 )
 
 const (
@@ -32,10 +39,10 @@ type amazonHttpHandlers struct {
 	scrapeLocker  *sync.Mutex
 	proxyStore    store.IProxyStore
 	maxConcurrent int
-	bufferPool    spool.BufferPool
+	bufferPool    spool.IBufferPool
 }
 
-func NewAmazonHttpHandlers(cp sconfig.IConfigProvider, proxyStore store.IProxyStore) *amazonHttpHandlers {
+func NewAmazonHttpHandlers(cp sconfig.IConfigProvider) *amazonHttpHandlers {
 	addrs := cp.GetStringSlice("ES.Addrs")
 
 	itemDAL, err := es.NewESItemDAL(
@@ -55,14 +62,13 @@ func NewAmazonHttpHandlers(cp sconfig.IConfigProvider, proxyStore store.IProxySt
 		itemDAL:       itemDAL,
 		reviewDAL:     reviewDAL,
 		scrapeLocker:  new(sync.Mutex),
-		proxyStore:    proxyStore,
+		proxyStore:    grpc.NewGRPCProxyStore("192.168.188.200:5560", "webshare"),
 		maxConcurrent: cp.GetIntDefault("AmazonMaxConcurrent", 15),
 		bufferPool:    spool.NewSyncBufferPool(4096),
 	}
 }
 
-func (x *amazonHttpHandlers) GetReviews(ctx iris.Context) {
-	ctx.ContentType("application/json; charset=utf-8")
+func (x *amazonHttpHandlers) GetReviews(ctx host.IHttpContext) {
 	query := x.getReviewQuery(ctx)
 	result, err := x.reviewDAL.GetAllReviews(query)
 	if u.LogError(err) {
@@ -78,11 +84,10 @@ func (x *amazonHttpHandlers) GetReviews(ctx iris.Context) {
 		return
 	}
 
-	ctx.Write(json)
+	ctx.WriteJsonBytes(json)
 }
 
-func (x *amazonHttpHandlers) GetItems(ctx iris.Context) {
-	ctx.ContentType("application/json; charset=utf-8")
+func (x *amazonHttpHandlers) GetItems(ctx host.IHttpContext) {
 	query := x.getItemQuery(ctx)
 	result, err := x.itemDAL.GetAllItems(query)
 	if u.LogError(err) {
@@ -98,10 +103,10 @@ func (x *amazonHttpHandlers) GetItems(ctx iris.Context) {
 		return
 	}
 
-	ctx.Write(json)
+	ctx.WriteJsonBytes(json)
 }
 
-func (x *amazonHttpHandlers) PostScrape(ctx iris.Context) {
+func (x *amazonHttpHandlers) PostScrape(ctx host.IHttpContext) {
 	x.scrapeLocker.Lock()
 	defer x.scrapeLocker.Unlock()
 
@@ -156,12 +161,12 @@ func (x *amazonHttpHandlers) PostScrape(ctx iris.Context) {
 	// 	return
 	// }
 
-	ctx.ContentType("application/json; charset=utf-8")
+	ctx.SetContentType(shttp.CTYPE_JSON)
 	json := fmt.Sprintf(`{"count":%d}`, count)
 	ctx.WriteString(json)
 }
 
-func (x *amazonHttpHandlers) ExportReviews(ctx iris.Context) {
+func (x *amazonHttpHandlers) ExportReviews(ctx host.IHttpContext) {
 	query := x.getReviewQuery(ctx)
 	result, err := x.reviewDAL.GetAllReviews(query)
 	if u.LogError(err) {
@@ -210,17 +215,17 @@ func (x *amazonHttpHandlers) ExportReviews(ctx iris.Context) {
 
 	wb.Write(buffer)
 
-	ctx.ContentType("application/octet-stream")
-	ctx.Header("Content-Disposition", fmt.Sprintf("attachment;filename=%s.xlsx", time.Now().Format("20060102-150405")))
+	ctx.SetContentType("application/octet-stream")
+	ctx.SetHeader("Content-Disposition", fmt.Sprintf("attachment;filename=%s.xlsx", time.Now().Format("20060102-150405")))
 	ctx.Write(buffer.Bytes())
 }
 
-func (x *amazonHttpHandlers) getItemQuery(ctx iris.Context) *amazon.ItemQuery {
-	asin := string(ctx.FormValue("asin"))
-	itemNo := string(ctx.FormValue("itemNo"))
-	statusStr := string(ctx.FormValue("status"))
-	pageSizeStr := string(ctx.FormValue("pageSize"))
-	cursor := string(ctx.FormValue("cursor"))
+func (x *amazonHttpHandlers) getItemQuery(ctx host.IHttpContext) *amazon.ItemQuery {
+	asin := ctx.GetFormString("asin")
+	itemNo := ctx.GetFormString("itemNo")
+	statusStr := ctx.GetFormString("status")
+	pageSizeStr := ctx.GetFormString("pageSize")
+	cursor := ctx.GetFormString("cursor")
 	pageSize, err := strconv.Atoi(pageSizeStr)
 	if err != nil {
 		pageSize = 10000
@@ -235,12 +240,12 @@ func (x *amazonHttpHandlers) getItemQuery(ctx iris.Context) *amazon.ItemQuery {
 	}
 }
 
-func (x *amazonHttpHandlers) getReviewQuery(ctx iris.Context) *amazon.ReviewQuery {
-	asin := string(ctx.FormValue("asin"))
-	itemNo := string(ctx.FormValue("itemNo"))
-	pageSizeStr := string(ctx.FormValue("pageSize"))
-	cursor := string(ctx.FormValue("cursor"))
-	fromDate := string(ctx.FormValue("fromDate"))
+func (x *amazonHttpHandlers) getReviewQuery(ctx host.IHttpContext) *amazon.ReviewQuery {
+	asin := ctx.GetFormString("asin")
+	itemNo := ctx.GetFormString("itemNo")
+	pageSizeStr := ctx.GetFormString("pageSize")
+	cursor := ctx.GetFormString("cursor")
+	fromDate := ctx.GetFormString("fromDate")
 	pageSize, err := strconv.Atoi(pageSizeStr)
 	if err != nil {
 		pageSize = 10000

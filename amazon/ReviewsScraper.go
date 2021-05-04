@@ -6,9 +6,9 @@ import (
 	"time"
 
 	"github.com/PuerkitoBio/goquery"
+	"github.com/SyncSoftInc/proxy/protoc/proxy"
 	log "github.com/syncfuture/go/slog"
 	"github.com/syncfuture/scraper/httpClient"
-	"github.com/syncfuture/scraper/model"
 	"github.com/syncfuture/scraper/store"
 )
 
@@ -32,17 +32,17 @@ func NewReviewsScraper(proxyStore store.IProxyStore, asin string) (r *ReviewsScr
 
 func (x *ReviewsScraper) FetchPages(fromDate *time.Time) (r []*ReviewDTO, err error) {
 	r = make([]*ReviewDTO, 0, 50)
-	var proxy *model.Proxy
+	var p *proxy.Proxy
 	rs := &ReviewResult{
 		NextPageURL: x.buildURL(1),
 	}
 
 	for rs.NextPageURL != "" {
-		rs, proxy, err = x.FetchPage(rs.NextPageURL)
+		rs, p, err = x.FetchPage(rs.NextPageURL)
 		if err != nil {
-			if !proxy.IsValid() {
+			if p.Score <= 0 {
 				// 代理有问题，重试一次
-				rs, proxy, err = x.FetchPage(rs.NextPageURL)
+				rs, p, err = x.FetchPage(rs.NextPageURL)
 				if err != nil {
 					// 再次失败就终止
 					return nil, err
@@ -64,7 +64,7 @@ func (x *ReviewsScraper) FetchPages(fromDate *time.Time) (r []*ReviewDTO, err er
 	return
 }
 
-func (x *ReviewsScraper) FetchPage(url string) (*ReviewResult, *model.Proxy, error) {
+func (x *ReviewsScraper) FetchPage(url string) (*ReviewResult, *proxy.Proxy, error) {
 	// if pageIndex <= 0 || pageIndex > x.PageInfo.TotalPage {
 	// 	log.Fatal("invalid pageindex")
 	// }
@@ -79,7 +79,7 @@ func (x *ReviewsScraper) FetchPage(url string) (*ReviewResult, *model.Proxy, err
 
 	doc := result.GetHtmlDocument()
 	reviewNodes := doc.Find(_reviewDomSelector)
-	log.Debugf("[%s] %d review nodes found", result.Proxy.Host, reviewNodes.Length())
+	log.Debugf("[%s] %d review nodes found", result.Proxy.URI, reviewNodes.Length())
 	if reviewNodes.Length() == 0 {
 		return &ReviewResult{
 			NextPageURL: "", // 没有评论，自然没有下一页

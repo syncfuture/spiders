@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"net/url"
 	"regexp"
 	"strconv"
 	"strings"
@@ -15,6 +16,7 @@ import (
 	"github.com/chromedp/cdproto/network"
 	"github.com/chromedp/chromedp"
 
+	"github.com/syncfuture/go/serr"
 	log "github.com/syncfuture/go/slog"
 	"github.com/syncfuture/go/u"
 	"github.com/syncfuture/scraper/scdp"
@@ -54,9 +56,13 @@ func NewReviewsScraper(client *scdp.ChromeDPClient) (r *ReviewsScraper) {
 
 func (x *ReviewsScraper) FetchReviews(item *model.ItemDTO, from time.Time) (r []*model.ReviewDTO, err error) {
 	dic := make(map[int]*model.ReviewDTO)
-	proxy := x.CDPClient.ProxyStore.Lease()
+	proxy := x.CDPClient.ProxyStore.Rent()
+	proxyURL, err := url.Parse(proxy.URI)
+	if err != nil {
+		return nil, serr.WithStack(err)
+	}
 
-	err = x.CDPClient.FetchWithProxy(proxy.ToURL(true), func(mainCtx context.Context) error {
+	err = x.CDPClient.FetchWithProxy(proxyURL, func(mainCtx context.Context) error {
 		// 监听ajax事件，获取评论
 		chromedp.ListenTarget(mainCtx, func(ev interface{}) {
 			go captureReviewsFromAjax(ev, mainCtx, item, from, &dic)
@@ -78,7 +84,8 @@ func (x *ReviewsScraper) FetchReviews(item *model.ItemDTO, from time.Time) (r []
 			// if strings.Contains(err.Error(), _expError) || strings.Contains(err.Error(), _retryError) {
 			// 	proxy.Expired = true
 			// }
-			proxy.Expired = true // 导航失败，直接视作代理池过期
+			// proxy.Expired = true // 导航失败，直接视作代理池过期
+			proxy.Score = -1
 			return err
 		}
 
@@ -100,7 +107,8 @@ func (x *ReviewsScraper) FetchReviews(item *model.ItemDTO, from time.Time) (r []
 		if blocked(item.URL) {
 			item.URL = url // 恢复URL
 			// log.Debugf("%s blocked by captcha", proxy.Host)
-			proxy.Blocked = true
+			// proxy.Blocked = true
+			proxy.Score = 0
 			return _errBlocked
 		} else if notFound(item.URL) { // 跳转去了列表页，直接返回错误
 			return _errNotFound
@@ -143,13 +151,15 @@ func (x *ReviewsScraper) FetchReviews(item *model.ItemDTO, from time.Time) (r []
 		for loadReviews(mainCtx, from) { // 循环点击加载更多按钮
 		}
 
-		log.Debugf("[%s] %s got %d reviews", proxy.Host, item.URL, len(dic))
+		log.Debugf("[%s] %s got %d reviews", proxy.URI, item.URL, len(dic))
 		return nil
 	})
 
 	x.CDPClient.ProxyStore.Return(proxy)
 
-	if proxy.Blocked || proxy.Expired {
+	// if proxy.Blocked || proxy.Expired {
+	if proxy.Score <= 0 {
+		// 重试
 		return x.FetchReviews(item, from)
 	} else if err == nil {
 		r = make([]*model.ReviewDTO, 0, len(dic))

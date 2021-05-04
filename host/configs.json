@@ -7,6 +7,11 @@
     "ES": {
         "Addrs": ["http://sa:Famous901@192.168.188.200:9200"]
     },
+    "CORS": {
+        "AllowedOrigin": "*",
+        "AllowedMethods": "*",
+        "AllowedHeaders": "*"
+    },
     "AmazonMaxConcurrent": 15,
     "WayfairMaxConcurrent": 1,
     "Timeout": 120000,

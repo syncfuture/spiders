@@ -8,15 +8,15 @@ import (
 	"sync/atomic"
 	"time"
 
-	"github.com/kataras/iris/v12"
 	"github.com/olivere/elastic/v7"
 	"github.com/syncfuture/go/sconfig"
 	log "github.com/syncfuture/go/slog"
 	"github.com/syncfuture/go/spool"
 	"github.com/syncfuture/go/stask"
 	"github.com/syncfuture/go/u"
+	"github.com/syncfuture/host"
 	"github.com/syncfuture/scraper/scdp"
-	"github.com/syncfuture/scraper/store"
+	"github.com/syncfuture/scraper/store/grpc"
 	"github.com/syncfuture/spiders/wayfair"
 	"github.com/syncfuture/spiders/wayfair/dal"
 	"github.com/syncfuture/spiders/wayfair/dal/es"
@@ -30,13 +30,13 @@ type wayfairHttpHandlers struct {
 	itemDAL       dal.IItemDAL
 	scrapeLocker  *sync.Mutex
 	CDPClient     *scdp.ChromeDPClient
-	bufferPool    spool.BufferPool
+	bufferPool    spool.IBufferPool
 	status        *scrapeStatus
 	scheduler     stask.ISliceScheduler
 	maxConcurrent int
 }
 
-func NewWayfairHttpHandlers(cp sconfig.IConfigProvider, proxyStore store.IProxyStore) *wayfairHttpHandlers {
+func NewWayfairHttpHandlers(cp sconfig.IConfigProvider) *wayfairHttpHandlers {
 	addrs := cp.GetStringSlice("ES.Addrs")
 
 	itemDAL, err := es.NewESItemDAL(
@@ -51,6 +51,8 @@ func NewWayfairHttpHandlers(cp sconfig.IConfigProvider, proxyStore store.IProxyS
 	)
 	u.LogFaltal(err)
 
+	proxyStore := grpc.NewGRPCProxyStore("192.168.188.200:5560", "soax")
+
 	return &wayfairHttpHandlers{
 		configProvier: cp,
 		itemDAL:       itemDAL,
@@ -64,8 +66,7 @@ func NewWayfairHttpHandlers(cp sconfig.IConfigProvider, proxyStore store.IProxyS
 	}
 }
 
-func (x *wayfairHttpHandlers) GetReviews(ctx iris.Context) {
-	ctx.ContentType("application/json; charset=utf-8")
+func (x *wayfairHttpHandlers) GetReviews(ctx host.IHttpContext) {
 	query := x.getReviewQuery(ctx)
 	result, err := x.reviewDAL.GetAllReviews(query)
 
@@ -82,11 +83,10 @@ func (x *wayfairHttpHandlers) GetReviews(ctx iris.Context) {
 		return
 	}
 
-	ctx.Write(json)
+	ctx.WriteJsonBytes(json)
 }
 
-func (x *wayfairHttpHandlers) GetItems(ctx iris.Context) {
-	ctx.ContentType("application/json; charset=utf-8")
+func (x *wayfairHttpHandlers) GetItems(ctx host.IHttpContext) {
 	query := x.getItemQuery(ctx)
 	result, err := x.itemDAL.GetAllItems(query)
 
@@ -103,10 +103,10 @@ func (x *wayfairHttpHandlers) GetItems(ctx iris.Context) {
 		return
 	}
 
-	ctx.Write(json)
+	ctx.WriteJsonBytes(json)
 }
 
-func (x *wayfairHttpHandlers) PostScrape(ctx iris.Context) {
+func (x *wayfairHttpHandlers) PostScrape(ctx host.IHttpContext) {
 	x.scrapeLocker.Lock()
 	defer x.scrapeLocker.Unlock()
 
@@ -159,28 +159,26 @@ func (x *wayfairHttpHandlers) PostScrape(ctx iris.Context) {
 		})
 	}()
 
-	ctx.ContentType("application/json; charset=utf-8")
 	data, _ := json.Marshal(x.status)
-	ctx.Write(data)
+	ctx.WriteJsonBytes(data)
 }
 
-func (x *wayfairHttpHandlers) PostCancel(ctx iris.Context) {
+func (x *wayfairHttpHandlers) PostCancel(ctx host.IHttpContext) {
 	if x.scheduler != nil {
 		x.scheduler.Cancel()
 		x.status.Reset()
 	}
 }
 
-func (x *wayfairHttpHandlers) GetStatus(ctx iris.Context) {
+func (x *wayfairHttpHandlers) GetStatus(ctx host.IHttpContext) {
 	if x.status.Current >= int32(x.status.TotalCount) {
 		x.status.Reset()
 	}
-	ctx.ContentType("application/json; charset=utf-8")
 	data, _ := json.Marshal(x.status)
-	ctx.Write(data)
+	ctx.WriteJsonBytes(data)
 }
 
-func (x *wayfairHttpHandlers) ExportReviews(ctx iris.Context) {
+func (x *wayfairHttpHandlers) ExportReviews(ctx host.IHttpContext) {
 	query := x.getReviewQuery(ctx)
 	result, err := x.reviewDAL.GetAllReviews(query)
 	if u.LogError(err) {
@@ -257,17 +255,17 @@ func (x *wayfairHttpHandlers) ExportReviews(ctx iris.Context) {
 
 	wb.Write(buffer)
 
-	ctx.ContentType("application/octet-stream")
-	ctx.Header("Content-Disposition", fmt.Sprintf("attachment;filename=%s.xlsx", time.Now().Format("20060102-150405")))
+	ctx.SetContentType("application/octet-stream")
+	ctx.SetHeader("Content-Disposition", fmt.Sprintf("attachment;filename=%s.xlsx", time.Now().Format("20060102-150405")))
 	ctx.Write(buffer.Bytes())
 }
 
-func (x *wayfairHttpHandlers) getItemQuery(ctx iris.Context) *model.ItemQuery {
-	sku := string(ctx.FormValue("sku"))
-	itemNo := string(ctx.FormValue("itemNo"))
-	statusStr := string(ctx.FormValue("status"))
-	pageSizeStr := string(ctx.FormValue("pageSize"))
-	cursor := string(ctx.FormValue("cursor"))
+func (x *wayfairHttpHandlers) getItemQuery(ctx host.IHttpContext) *model.ItemQuery {
+	sku := ctx.GetFormString("sku")
+	itemNo := ctx.GetFormString("itemNo")
+	statusStr := ctx.GetFormString("status")
+	pageSizeStr := ctx.GetFormString("pageSize")
+	cursor := ctx.GetFormString("cursor")
 	pageSize, err := strconv.Atoi(pageSizeStr)
 	if err != nil {
 		pageSize = 10000
@@ -282,12 +280,12 @@ func (x *wayfairHttpHandlers) getItemQuery(ctx iris.Context) *model.ItemQuery {
 	}
 }
 
-func (x *wayfairHttpHandlers) getReviewQuery(ctx iris.Context) *model.ReviewQuery {
-	sku := string(ctx.FormValue("sku"))
-	itemNo := string(ctx.FormValue("itemNo"))
-	pageSizeStr := string(ctx.FormValue("pageSize"))
-	cursor := string(ctx.FormValue("cursor"))
-	fromDate := string(ctx.FormValue("fromDate"))
+func (x *wayfairHttpHandlers) getReviewQuery(ctx host.IHttpContext) *model.ReviewQuery {
+	sku := ctx.GetFormString("sku")
+	itemNo := ctx.GetFormString("itemNo")
+	pageSizeStr := ctx.GetFormString("pageSize")
+	cursor := ctx.GetFormString("cursor")
+	fromDate := ctx.GetFormString("fromDate")
 	pageSize, err := strconv.Atoi(pageSizeStr)
 	if err != nil {
 		pageSize = 10000
