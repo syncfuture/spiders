@@ -16,11 +16,11 @@ import (
 	"github.com/syncfuture/go/stask"
 	"github.com/syncfuture/go/u"
 	"github.com/syncfuture/host"
-	"github.com/syncfuture/scraper/store"
-	"github.com/syncfuture/scraper/store/grpc"
 	"github.com/syncfuture/spiders/amazon"
 	"github.com/syncfuture/spiders/amazon/dal"
 	"github.com/syncfuture/spiders/amazon/dal/es"
+	"github.com/syncfuture/spiders/scraper/store"
+	"github.com/syncfuture/spiders/scraper/store/grpc"
 	"github.com/tealeg/xlsx"
 )
 

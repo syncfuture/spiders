@@ -7,7 +7,7 @@ import (
 
 	log "github.com/syncfuture/go/slog"
 	"github.com/syncfuture/go/u"
-	"github.com/syncfuture/scraper/store"
+	"github.com/syncfuture/spiders/scraper/store"
 )
 
 const (

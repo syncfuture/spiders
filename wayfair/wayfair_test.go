@@ -5,15 +5,14 @@ import (
 	"testing"
 	"time"
 
-	"github.com/chromedp/cdproto/fetch"
 	"github.com/chromedp/chromedp"
 	"github.com/olivere/elastic/v7"
 	"github.com/stretchr/testify/assert"
 	"github.com/syncfuture/go/sconfig"
 	log "github.com/syncfuture/go/slog"
 	"github.com/syncfuture/go/u"
-	"github.com/syncfuture/scraper/scdp"
-	"github.com/syncfuture/scraper/store/grpc"
+	"github.com/syncfuture/spiders/scraper/scdp"
+	"github.com/syncfuture/spiders/scraper/store/grpc"
 	"github.com/syncfuture/spiders/wayfair/dal/es"
 	"github.com/syncfuture/spiders/wayfair/model"
 )
@@ -80,10 +79,12 @@ func Test123(t *testing.T) {
 func aaa(ctx context.Context) error {
 	var txt string
 	err := chromedp.Run(ctx,
-		fetch.Enable().WithHandleAuthRequests(true),
+		// fetch.Enable().WithHandleAuthRequests(true),
 		chromedp.Navigate("http://ipv4.webshare.io/"),
+		// chromedp.Navigate("http://checker.soax.com/api/ipinfo"),
 		chromedp.Text("html", &txt, chromedp.ByQuery),
 	)
+	log.Debug(txt, "\n", err)
 	return err
 }
 
@@ -92,6 +93,8 @@ func run(action func(ctx context.Context) error) error {
 	// store := webshare.NewDefaultWebShareProxyStore()
 	proxy := store.Rent()
 	defer store.Return(proxy)
+
+	log.Debugf("%s rented", proxy.URI)
 
 	timeoutCtx, cancel1 := context.WithTimeout(context.Background(), time.Second*60)
 	defer cancel1()

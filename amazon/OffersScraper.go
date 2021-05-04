@@ -7,9 +7,9 @@ import (
 	"strings"
 
 	"github.com/PuerkitoBio/goquery"
-	"github.com/syncfuture/scraper"
-	"github.com/syncfuture/scraper/httpClient"
-	"github.com/syncfuture/scraper/store"
+	"github.com/syncfuture/spiders/scraper"
+	"github.com/syncfuture/spiders/scraper/httpClient"
+	"github.com/syncfuture/spiders/scraper/store"
 )
 
 type OffersScraper struct {

@@ -7,8 +7,8 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/syncfuture/go/sconfig"
 	log "github.com/syncfuture/go/slog"
-	"github.com/syncfuture/scraper/store"
-	"github.com/syncfuture/scraper/store/grpc"
+	"github.com/syncfuture/spiders/scraper/store"
+	"github.com/syncfuture/spiders/scraper/store/grpc"
 )
 
 const (

@@ -19,7 +19,7 @@ import (
 	"github.com/syncfuture/go/serr"
 	log "github.com/syncfuture/go/slog"
 	"github.com/syncfuture/go/u"
-	"github.com/syncfuture/scraper/scdp"
+	"github.com/syncfuture/spiders/scraper/scdp"
 	"github.com/syncfuture/spiders/wayfair/model"
 )
 

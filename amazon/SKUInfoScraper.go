@@ -5,8 +5,8 @@ import (
 
 	"github.com/PuerkitoBio/goquery"
 	"github.com/syncfuture/go/srand"
-	"github.com/syncfuture/scraper/httpClient"
-	"github.com/syncfuture/scraper/store"
+	"github.com/syncfuture/spiders/scraper/httpClient"
+	"github.com/syncfuture/spiders/scraper/store"
 )
 
 type SKUInfoScraper struct {

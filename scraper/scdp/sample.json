@@ -1,0 +1,269 @@
+{
+    "data": {
+        "product": {
+            "customerReviews": {
+                "ratingCount": 108,
+                "averageRatingValue": 2.4074074074074,
+                "histogramStats": [{
+                    "rating": 5,
+                    "count": 24
+                }, {
+                    "rating": 4,
+                    "count": 10
+                }, {
+                    "rating": 3,
+                    "count": 9
+                }, {
+                    "rating": 2,
+                    "count": 17
+                }, {
+                    "rating": 1,
+                    "count": 52
+                }],
+                "filterAspects": [],
+                "bubbleFilters": [],
+                "reviewPagesTotal": 12,
+                "reviews": [{
+                    "reviewId": 65476417,
+                    "reviewerName": "Noel",
+                    "hasVerifiedBuyerStatus": true,
+                    "isUSReviewer": false,
+                    "reviewerBadgeText": "",
+                    "reviewerBadgeId": 0,
+                    "ratingStars": 8,
+                    "date": "01\/22\/2021",
+                    "headline": "",
+                    "productComments": "I am very happy with my purchase! \n I am 5'1\", live in a very small apartment, and it is perfect! I can see where others (taller) may not have been satisfied, but I have no complaints.  I really like the fact that both the bottom and back cushions are removable.  And each of the three sections has four legs which provides stability.",
+                    "headlineTranslation": "",
+                    "productCommentsTranslation": "",
+                    "languageCode": "en",
+                    "reviewHelpful": 2,
+                    "isReviewHelpfulUpvoted": false,
+                    "customerPhotos": [{
+                        "idx": 0,
+                        "thumbnail": "https:\/\/secure.img1-fg.wfcdn.com\/im\/23466640\/c_crop-h150-w150%5Ecompr-r85\/1373\/137377173\/default_name.jpg",
+                        "src": "https:\/\/secure.img1-fg.wfcdn.com\/im\/18227088\/c_crop-h400-w400%5Ecompr-r85\/1373\/137377173\/default_name.jpg",
+                        "ire_id": 137377173
+                    }],
+                    "productName": "Altis 77\" Wide Cotton Square Arm Convertible Sofa",
+                    "productUrl": ""
+                }, {
+                    "reviewId": 66120664,
+                    "reviewerName": "Sherry",
+                    "hasVerifiedBuyerStatus": true,
+                    "isUSReviewer": false,
+                    "reviewerBadgeText": "",
+                    "reviewerBadgeId": 0,
+                    "ratingStars": 2,
+                    "date": "02\/04\/2021",
+                    "headline": "",
+                    "productComments": "The tv sitting in front of the furniture is a 32\"!  Placed it there so people looking at reviews can see just how small it is when put together.  Unless you want and expensive piece of kid furniture so not buy this expecting and adult to us it\nWe did however have the best laugh we have had in a while so I guess it is worth the return fee.",
+                    "headlineTranslation": "",
+                    "productCommentsTranslation": "",
+                    "languageCode": "en",
+                    "reviewHelpful": 0,
+                    "isReviewHelpfulUpvoted": false,
+                    "customerPhotos": [{
+                        "idx": 0,
+                        "thumbnail": "https:\/\/secure.img1-fg.wfcdn.com\/im\/96512357\/c_crop-h150-w150%5Ecompr-r85\/1384\/138493750\/default_name.jpg",
+                        "src": "https:\/\/secure.img1-fg.wfcdn.com\/im\/91272805\/c_crop-h400-w400%5Ecompr-r85\/1384\/138493750\/default_name.jpg",
+                        "ire_id": 138493750
+                    }],
+                    "productName": "Altis 77\" Wide Cotton Square Arm Convertible Sofa",
+                    "productUrl": ""
+                }, {
+                    "reviewId": 65898566,
+                    "reviewerName": "HOPE",
+                    "hasVerifiedBuyerStatus": true,
+                    "isUSReviewer": false,
+                    "reviewerBadgeText": "",
+                    "reviewerBadgeId": 0,
+                    "ratingStars": 2,
+                    "date": "01\/31\/2021",
+                    "headline": "",
+                    "productComments": "This couch was cheaply made and very low to the ground I would not recommend it at all the monument you sit on it all cushion wrinkle it should be listed as child play sofa not for regular sized adults",
+                    "headlineTranslation": "",
+                    "productCommentsTranslation": "",
+                    "languageCode": "en",
+                    "reviewHelpful": 0,
+                    "isReviewHelpfulUpvoted": false,
+                    "customerPhotos": [{
+                        "idx": 0,
+                        "thumbnail": "https:\/\/secure.img1-fg.wfcdn.com\/im\/41527836\/c_crop-h150-w150%5Ecompr-r85\/1380\/138030046\/default_name.jpg",
+                        "src": "https:\/\/secure.img1-fg.wfcdn.com\/im\/46767388\/c_crop-h400-w400%5Ecompr-r85\/1380\/138030046\/default_name.jpg",
+                        "ire_id": 138030046
+                    }],
+                    "productName": "Altis 77\" Wide Cotton Square Arm Convertible Sofa",
+                    "productUrl": ""
+                }, {
+                    "reviewId": 65851010,
+                    "reviewerName": "rita",
+                    "hasVerifiedBuyerStatus": true,
+                    "isUSReviewer": false,
+                    "reviewerBadgeText": "",
+                    "reviewerBadgeId": 0,
+                    "ratingStars": 6,
+                    "date": "01\/30\/2021",
+                    "headline": "",
+                    "productComments": "It looks way more smaller than what looks like in the picture. Also, the pillow size are different and they come with lots of wrinkles. The only thing I can say good of this product is I purchased this when it was a flash sale, so Maybe the price is ok considering what I got (I don\u2019t know because I don\u2019t have comparison so far), and the color is the same as shown in the picture.",
+                    "headlineTranslation": "",
+                    "productCommentsTranslation": "",
+                    "languageCode": "en",
+                    "reviewHelpful": 0,
+                    "isReviewHelpfulUpvoted": false,
+                    "customerPhotos": [{
+                        "idx": 0,
+                        "thumbnail": "https:\/\/secure.img1-fg.wfcdn.com\/im\/08899397\/c_crop-h150-w150%5Ecompr-r85\/1379\/137994988\/default_name.jpg",
+                        "src": "https:\/\/secure.img1-fg.wfcdn.com\/im\/96340155\/c_crop-h400-w400%5Ecompr-r85\/1379\/137994988\/default_name.jpg",
+                        "ire_id": 137994988
+                    }],
+                    "productName": "Altis 77\" Wide Cotton Square Arm Convertible Sofa",
+                    "productUrl": ""
+                }, {
+                    "reviewId": 64765115,
+                    "reviewerName": "Alicia Ines Vilchis",
+                    "hasVerifiedBuyerStatus": true,
+                    "isUSReviewer": false,
+                    "reviewerBadgeText": "",
+                    "reviewerBadgeId": 0,
+                    "ratingStars": 4,
+                    "date": "01\/09\/2021",
+                    "headline": "",
+                    "productComments": "It looks good but the size is not good. \nSe ve bien pero el tama\u00f1o lo hace malo. Tal vez sea para ni\u00f1os.",
+                    "headlineTranslation": "",
+                    "productCommentsTranslation": "",
+                    "languageCode": "en",
+                    "reviewHelpful": 0,
+                    "isReviewHelpfulUpvoted": false,
+                    "customerPhotos": [{
+                        "idx": 0,
+                        "thumbnail": "https:\/\/secure.img1-fg.wfcdn.com\/im\/49544674\/c_crop-h150-w150%5Ecompr-r85\/1362\/136248829\/default_name.jpg",
+                        "src": "https:\/\/secure.img1-fg.wfcdn.com\/im\/44305122\/c_crop-h400-w400%5Ecompr-r85\/1362\/136248829\/default_name.jpg",
+                        "ire_id": 136248829
+                    }, {
+                        "idx": 1,
+                        "thumbnail": "https:\/\/secure.img1-fg.wfcdn.com\/im\/83440971\/c_crop-h150-w150%5Ecompr-r85\/1362\/136248831\/default_name.jpg",
+                        "src": "https:\/\/secure.img1-fg.wfcdn.com\/im\/78201419\/c_crop-h400-w400%5Ecompr-r85\/1362\/136248831\/default_name.jpg",
+                        "ire_id": 136248831
+                    }, {
+                        "idx": 2,
+                        "thumbnail": "https:\/\/secure.img1-fg.wfcdn.com\/im\/60895587\/c_crop-h150-w150%5Ecompr-r85\/1362\/136248828\/default_name.jpg",
+                        "src": "https:\/\/secure.img1-fg.wfcdn.com\/im\/55656035\/c_crop-h400-w400%5Ecompr-r85\/1362\/136248828\/default_name.jpg",
+                        "ire_id": 136248828
+                    }],
+                    "productName": "Altis 77\" Wide Cotton Square Arm Convertible Sofa",
+                    "productUrl": ""
+                }, {
+                    "reviewId": 64568962,
+                    "reviewerName": "Daniela",
+                    "hasVerifiedBuyerStatus": true,
+                    "isUSReviewer": false,
+                    "reviewerBadgeText": "",
+                    "reviewerBadgeId": 0,
+                    "ratingStars": 2,
+                    "date": "01\/04\/2021",
+                    "headline": "",
+                    "productComments": "I give this a very low rating because I am missing a cushion for my couch.",
+                    "headlineTranslation": "",
+                    "productCommentsTranslation": "",
+                    "languageCode": "en",
+                    "reviewHelpful": 0,
+                    "isReviewHelpfulUpvoted": false,
+                    "customerPhotos": [{
+                        "idx": 0,
+                        "thumbnail": "https:\/\/secure.img1-fg.wfcdn.com\/im\/14179528\/c_crop-h150-w150%5Ecompr-r85\/1358\/135829410\/default_name.jpg",
+                        "src": "https:\/\/secure.img1-fg.wfcdn.com\/im\/19419080\/c_crop-h400-w400%5Ecompr-r85\/1358\/135829410\/default_name.jpg",
+                        "ire_id": 135829410
+                    }],
+                    "productName": "Altis 77\" Wide Cotton Square Arm Convertible Sofa",
+                    "productUrl": ""
+                }, {
+                    "reviewId": 65728475,
+                    "reviewerName": "Anonymous",
+                    "hasVerifiedBuyerStatus": true,
+                    "isUSReviewer": false,
+                    "reviewerBadgeText": "",
+                    "reviewerBadgeId": 0,
+                    "ratingStars": 2,
+                    "date": "01\/27\/2021",
+                    "headline": "",
+                    "productComments": "Its not what it seems .... picture looks great .....size of the sofa is for children . not happy with this item",
+                    "headlineTranslation": "",
+                    "productCommentsTranslation": "",
+                    "languageCode": "en",
+                    "reviewHelpful": 1,
+                    "isReviewHelpfulUpvoted": false,
+                    "customerPhotos": [],
+                    "productName": "Altis 77\" Wide Cotton Square Arm Convertible Sofa",
+                    "productUrl": ""
+                }, {
+                    "reviewId": 65564602,
+                    "reviewerName": "Rachel",
+                    "hasVerifiedBuyerStatus": true,
+                    "isUSReviewer": false,
+                    "reviewerBadgeText": "",
+                    "reviewerBadgeId": 0,
+                    "ratingStars": 10,
+                    "date": "01\/24\/2021",
+                    "headline": "",
+                    "productComments": "i love it. the lounge chair is  so comfortable. thank you",
+                    "headlineTranslation": "",
+                    "productCommentsTranslation": "",
+                    "languageCode": "en",
+                    "reviewHelpful": 1,
+                    "isReviewHelpfulUpvoted": false,
+                    "customerPhotos": [],
+                    "productName": "Altis 77\" Wide Cotton Square Arm Convertible Sofa",
+                    "productUrl": ""
+                }, {
+                    "reviewId": 63544452,
+                    "reviewerName": "Amanda",
+                    "hasVerifiedBuyerStatus": true,
+                    "isUSReviewer": false,
+                    "reviewerBadgeText": "",
+                    "reviewerBadgeId": 0,
+                    "ratingStars": 6,
+                    "date": "12\/14\/2020",
+                    "headline": "",
+                    "productComments": "Overall this couch is comfortable and functional. It arrived in two boxes, and was super simple to put together; as well as compact enough to move easily, the fabric and color seem durable. The reason for 3 stars is the size, the picture online is extremely misleading. This couch is definitely designed for a small space. We initially thought it was a great deal, but are disappointed in the size of the couch, for the size it is overpriced.",
+                    "headlineTranslation": "",
+                    "productCommentsTranslation": "",
+                    "languageCode": "en",
+                    "reviewHelpful": 1,
+                    "isReviewHelpfulUpvoted": false,
+                    "customerPhotos": [],
+                    "productName": "Altis 77\" Wide Cotton Square Arm Convertible Sofa",
+                    "productUrl": ""
+                }, {
+                    "reviewId": 67715388,
+                    "reviewerName": "Patty",
+                    "hasVerifiedBuyerStatus": true,
+                    "isUSReviewer": false,
+                    "reviewerBadgeText": "",
+                    "reviewerBadgeId": 0,
+                    "ratingStars": 10,
+                    "date": "02\/28\/2021",
+                    "headline": "",
+                    "productComments": "Absolutely love my sofa!! Fits perfectly in my new place.",
+                    "headlineTranslation": "",
+                    "productCommentsTranslation": "",
+                    "languageCode": "en",
+                    "reviewHelpful": 0,
+                    "isReviewHelpfulUpvoted": false,
+                    "customerPhotos": [],
+                    "productName": "Altis 77\" Wide Cotton Square Arm Convertible Sofa",
+                    "productUrl": ""
+                }],
+                "useManufacturerReviews": false
+            },
+            "manufacturer": {
+                "__typename": "Manufacturer_Type",
+                "id": 44308,
+                "name": "Ebern Designs",
+                "url": "https:\/\/www.wayfair.com\/brand\/bnd\/ebern-designs-b44308.html",
+                "averageRating": 4.51,
+                "ratingCount": 1759783
+            }
+        }
+    }
+}

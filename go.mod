@@ -11,7 +11,6 @@ require (
 	github.com/stretchr/testify v1.7.0
 	github.com/syncfuture/go v1.6.1
 	github.com/syncfuture/host v1.4.4
-	github.com/syncfuture/scraper v1.3.3
 	github.com/tealeg/xlsx v1.0.5
 	google.golang.org/grpc v1.37.0
 )

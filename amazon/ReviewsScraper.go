@@ -8,8 +8,8 @@ import (
 	"github.com/PuerkitoBio/goquery"
 	"github.com/SyncSoftInc/proxy/protoc/proxy"
 	log "github.com/syncfuture/go/slog"
-	"github.com/syncfuture/scraper/httpClient"
-	"github.com/syncfuture/scraper/store"
+	"github.com/syncfuture/spiders/scraper/httpClient"
+	"github.com/syncfuture/spiders/scraper/store"
 )
 
 type ReviewsScraper struct {
