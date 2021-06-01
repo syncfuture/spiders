@@ -3,6 +3,7 @@ package httpClient
 import (
 	"compress/gzip"
 	"crypto/tls"
+	"errors"
 	"io"
 	"net/http"
 	"net/url"
@@ -10,7 +11,6 @@ import (
 
 	"github.com/PuerkitoBio/goquery"
 	"github.com/SyncSoftInc/proxy/protoc/proxy"
-	"github.com/syncfuture/go/serr"
 	log "github.com/syncfuture/go/slog"
 	"github.com/syncfuture/go/spool"
 	"github.com/syncfuture/spiders/scraper"
@@ -19,8 +19,10 @@ import (
 )
 
 var (
-	_blockedErrs = []string{"automated access"}
-	_expireErrs  = []string{"Proxy Authentication Required"}
+	_blockedErrs     = []string{"automated access"}
+	_expireErrs      = []string{"Proxy Authentication Required"}
+	Err_ProxyBlocked = errors.New("proxy blocked")
+	Err_ProxyExpired = errors.New("proxy expired")
 )
 
 type HttpClientScraper struct {
@@ -79,9 +81,13 @@ func (x *HttpClientScraper) Get(targetURL string) (r *scraper.ScrapeResult, err 
 	log.Debugf("[%s] GET %s", p.URI, targetURL)
 	resp, err := c.Do(msg)
 	if err != nil {
-		// 验证代理是否可用
+		// 验证代理是否过期
 		x.ExpireChecker(p, err.Error())
-		return scraper.NewScrapeResult(http.StatusBadRequest, nil, p, x.headers, nil), err
+		if p.Score < 0 {
+			return scraper.NewScrapeResult(http.StatusBadRequest, nil, p, x.headers, resp.Header), Err_ProxyExpired
+		} else {
+			return scraper.NewScrapeResult(http.StatusBadRequest, nil, p, x.headers, nil), err
+		}
 	}
 	statusCode := resp.StatusCode
 
@@ -106,11 +112,11 @@ func (x *HttpClientScraper) Get(targetURL string) (r *scraper.ScrapeResult, err 
 
 	buffer.ReadFrom(bodyReader)
 
-	// 验证代理是否可用
+	// 验证代理是否被封
 	x.BlockChecker(p, buffer.String())
-	if p.Score <= 0 {
+	if p.Score == 0 {
 		// statusCode = http.StatusBadRequest
-		return scraper.NewScrapeResult(statusCode, nil, p, x.headers, resp.Header), serr.New("proxy blocked")
+		return scraper.NewScrapeResult(statusCode, nil, p, x.headers, resp.Header), Err_ProxyBlocked
 	}
 
 	doc, err := goquery.NewDocumentFromReader(buffer)
