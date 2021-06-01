@@ -8,6 +8,7 @@ import (
 
 func main() {
 	cp := sconfig.NewJsonConfigProvider()
+	log.Init(cp)
 	host := sfasthttp.NewFHWebHost(cp)
 
 	amazonHttpHandler := NewAmazonHttpHandlers(cp)

@@ -6,8 +6,10 @@ import (
 	"io"
 	"net/http"
 	"net/url"
+	"strings"
 
 	"github.com/PuerkitoBio/goquery"
+	"github.com/SyncSoftInc/proxy/protoc/proxy"
 	log "github.com/syncfuture/go/slog"
 	"github.com/syncfuture/go/spool"
 	"github.com/syncfuture/spiders/scraper"
@@ -15,10 +17,17 @@ import (
 	"github.com/syncfuture/spiders/scraper/store"
 )
 
+var (
+	_blockedErrs = []string{"automated access"}
+	_expireErrs  = []string{"Proxy Authentication Required"}
+)
+
 type HttpClientScraper struct {
-	proxyStore store.IProxyStore
-	headers    map[string]string
-	bufferPool spool.IBufferPool
+	proxyStore    store.IProxyStore
+	headers       map[string]string
+	bufferPool    spool.IBufferPool
+	ExpireChecker func(*proxy.Proxy, string)
+	BlockChecker  func(*proxy.Proxy, string)
 }
 
 func NewRandomScraper(proxyStore store.IProxyStore, headers map[string]string) scraper.IScraper {
@@ -31,6 +40,20 @@ func NewRandomScraper(proxyStore store.IProxyStore, headers map[string]string) s
 	r.proxyStore = proxyStore
 	r.headers = headers
 	r.bufferPool = spool.NewSyncBufferPool(2048)
+	r.ExpireChecker = func(p *proxy.Proxy, s string) {
+		for _, err := range _expireErrs {
+			if strings.Contains(s, err) {
+				p.Score = -1
+			}
+		}
+	}
+	r.BlockChecker = func(p *proxy.Proxy, s string) {
+		for _, err := range _blockedErrs {
+			if strings.Contains(s, err) {
+				p.Score = 0
+			}
+		}
+	}
 
 	return r
 }
@@ -56,7 +79,7 @@ func (x *HttpClientScraper) Get(targetURL string) (r *scraper.ScrapeResult, err 
 	resp, err := c.Do(msg)
 	if err != nil {
 		// 验证代理是否可用
-		// x.proxyStore.Validate(proxy, err.Error())
+		x.ExpireChecker(p, err.Error())
 		return scraper.NewScrapeResult(http.StatusBadRequest, nil, p, x.headers, nil), err
 	}
 	statusCode := resp.StatusCode
@@ -83,11 +106,10 @@ func (x *HttpClientScraper) Get(targetURL string) (r *scraper.ScrapeResult, err 
 	buffer.ReadFrom(bodyReader)
 
 	// 验证代理是否可用
-	// x.proxyStore.Validate(proxy, buffer.String())
-
-	// if proxy.Expired || proxy.Blocked {
-	// 	statusCode = http.StatusBadRequest
-	// }
+	x.ExpireChecker(p, buffer.String())
+	if p.Score <= 0 {
+		statusCode = http.StatusBadRequest
+	}
 
 	doc, err := goquery.NewDocumentFromReader(buffer)
 	if err != nil {

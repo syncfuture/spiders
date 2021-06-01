@@ -12,8 +12,8 @@ import (
 )
 
 const (
-	_testWebshareKey = "be09d781115fe3491743fa205ea786852513f474"
-	_testASIN        = "B00D4KN4Q0"
+	// _testWebshareKey = "be09d781115fe3491743fa205ea786852513f474"
+	_testASIN = "B00D4KN4Q0"
 )
 
 var (
@@ -23,7 +23,8 @@ var (
 func init() {
 	cp := sconfig.NewJsonConfigProvider()
 	log.Init(cp)
-	_testStore = grpc.NewGRPCProxyStore("192.168.188.200:5560", "webshare")
+	// _testStore = grpc.NewGRPCProxyStore("192.168.188.200:5560", "webshare")
+	_testStore = grpc.NewGRPCProxyStore("192.168.188.166:5560", "webshare")
 }
 
 func TestReviewsScraper_FetchPage(t *testing.T) {
