@@ -10,6 +10,7 @@ import (
 
 	"github.com/PuerkitoBio/goquery"
 	"github.com/SyncSoftInc/proxy/protoc/proxy"
+	"github.com/syncfuture/go/serr"
 	log "github.com/syncfuture/go/slog"
 	"github.com/syncfuture/go/spool"
 	"github.com/syncfuture/spiders/scraper"
@@ -108,7 +109,8 @@ func (x *HttpClientScraper) Get(targetURL string) (r *scraper.ScrapeResult, err 
 	// 验证代理是否可用
 	x.BlockChecker(p, buffer.String())
 	if p.Score <= 0 {
-		statusCode = http.StatusBadRequest
+		// statusCode = http.StatusBadRequest
+		return scraper.NewScrapeResult(statusCode, nil, p, x.headers, resp.Header), serr.New("proxy blocked")
 	}
 
 	doc, err := goquery.NewDocumentFromReader(buffer)
