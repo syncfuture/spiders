@@ -1,7 +1,8 @@
 {
     "Debug": true,
     "Log": {
-        "Level": "info"
+        "Level": "debug",
+        "DetailLevel": "warn"
     },
     "ES": {
         "Addrs": ["http://sa:Famous901@192.168.188.200:9200"]
