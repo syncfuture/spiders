@@ -106,7 +106,7 @@ func (x *HttpClientScraper) Get(targetURL string) (r *scraper.ScrapeResult, err 
 	buffer.ReadFrom(bodyReader)
 
 	// 验证代理是否可用
-	x.ExpireChecker(p, buffer.String())
+	x.BlockChecker(p, buffer.String())
 	if p.Score <= 0 {
 		statusCode = http.StatusBadRequest
 	}

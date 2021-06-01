@@ -79,8 +79,11 @@ func (x *ReviewsScraper) FetchPage(url string) (*ReviewResult, *proxy.Proxy, err
 
 	doc := result.GetHtmlDocument()
 	reviewNodes := doc.Find(_reviewDomSelector)
-	log.Debugf("[%s] %d review nodes found", result.Proxy.URI, reviewNodes.Length())
+	// log.Debugf("[%s] %d review nodes found", result.Proxy.URI, reviewNodes.Length())
+	log.Infof("[%s] %d review nodes found", x.ASIN, reviewNodes.Length())
 	if reviewNodes.Length() == 0 {
+		log.Debug(result.ToCompactHtml())
+
 		return &ReviewResult{
 			NextPageURL: "", // 没有评论，自然没有下一页
 			Reviews:     make([]*ReviewDTO, 0),
