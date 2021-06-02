@@ -84,7 +84,7 @@ func (x *HttpClientScraper) Get(targetURL string) (r *scraper.ScrapeResult, err 
 		// 验证代理是否过期
 		x.ExpireChecker(p, err.Error())
 		if p.Score < 0 {
-			return scraper.NewScrapeResult(http.StatusBadRequest, nil, p, x.headers, resp.Header), Err_ProxyExpired
+			return scraper.NewScrapeResult(http.StatusBadRequest, nil, p, x.headers, nil), Err_ProxyExpired
 		} else {
 			return scraper.NewScrapeResult(http.StatusBadRequest, nil, p, x.headers, nil), err
 		}
