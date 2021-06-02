@@ -82,7 +82,7 @@ func (x *ReviewsScraper) FetchPage(url string) (*ReviewResult, *proxy.Proxy, err
 	// log.Debugf("[%s] %d review nodes found", result.Proxy.URI, reviewNodes.Length())
 	log.Infof("[%s] %d review nodes found", x.ASIN, reviewNodes.Length())
 	if reviewNodes.Length() == 0 {
-		log.Debug(result.ToCompactHtml())
+		// log.Debug(result.ToCompactHtml())
 
 		return &ReviewResult{
 			NextPageURL: "", // 没有评论，自然没有下一页
