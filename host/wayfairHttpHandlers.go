@@ -51,7 +51,9 @@ func NewWayfairHttpHandlers(cp sconfig.IConfigProvider) *wayfairHttpHandlers {
 	)
 	u.LogFaltal(err)
 
-	proxyStore := grpc.NewGRPCProxyStore("192.168.188.200:5560", "soax")
+	proxyStoreAddr := cp.GetString("ProxyStore.Addr")
+	proxyStoreProvider := cp.GetString("ProxyStore.Provider")
+	proxyStore := grpc.NewGRPCProxyStore(proxyStoreAddr, proxyStoreProvider)
 
 	return &wayfairHttpHandlers{
 		configProvier: cp,

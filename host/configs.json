@@ -15,5 +15,9 @@
     "AmazonMaxConcurrent": 15,
     "WayfairMaxConcurrent": 1,
     "Timeout": 120000,
+    "ProxyStore": {
+        "Addr": "localhost:5560",
+        "Provider": "webshare"
+    },
     "ListenAddr": ":7000"
 }

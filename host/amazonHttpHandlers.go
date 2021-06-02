@@ -57,12 +57,15 @@ func NewAmazonHttpHandlers(cp sconfig.IConfigProvider) *amazonHttpHandlers {
 	)
 	u.LogFaltal(err)
 
+	proxyStoreAddr := cp.GetString("ProxyStore.Addr")
+	proxyStoreProvider := cp.GetString("ProxyStore.Provider")
+
 	return &amazonHttpHandlers{
 		configProvier: cp,
 		itemDAL:       itemDAL,
 		reviewDAL:     reviewDAL,
 		scrapeLocker:  new(sync.Mutex),
-		proxyStore:    grpc.NewGRPCProxyStore("192.168.188.200:5560", "webshare"),
+		proxyStore:    grpc.NewGRPCProxyStore(proxyStoreAddr, proxyStoreProvider),
 		maxConcurrent: cp.GetIntDefault("AmazonMaxConcurrent", 15),
 		bufferPool:    spool.NewSyncBufferPool(4096),
 	}

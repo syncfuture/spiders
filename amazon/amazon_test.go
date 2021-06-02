@@ -23,8 +23,10 @@ var (
 func init() {
 	cp := sconfig.NewJsonConfigProvider()
 	log.Init(cp)
+	proxyStoreAddr := cp.GetString("ProxyStore.Addr")
+	proxyStoreProvider := cp.GetString("ProxyStore.Provider")
 	// _testStore = grpc.NewGRPCProxyStore("192.168.188.200:5560", "webshare")
-	_testStore = grpc.NewGRPCProxyStore("192.168.188.166:5560", "webshare")
+	_testStore = grpc.NewGRPCProxyStore(proxyStoreAddr, proxyStoreProvider)
 }
 
 func TestReviewsScraper_FetchPage(t *testing.T) {
