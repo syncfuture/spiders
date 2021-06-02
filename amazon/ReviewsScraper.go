@@ -74,6 +74,11 @@ func (x *ReviewsScraper) FetchPage(url string) (*ReviewResult, *proxy.Proxy, err
 	}
 	result, err := httpScraper.Get(url)
 	if err != nil {
+		if err == httpClient.Err_ProxyBlocked {
+			log.Warnf("[%s] blocked", result.Proxy.URI)
+		} else if err == httpClient.Err_ProxyExpired {
+			log.Warnf("[%s] expired", result.Proxy.URI)
+		}
 		return &ReviewResult{NextPageURL: url}, result.Proxy, err
 	}
 
