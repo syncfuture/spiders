@@ -121,7 +121,7 @@ func (x *ESItemDAL) SaveItems(items ...*amazon.ItemDTO) error {
 	if err != nil {
 		return err
 	} else {
-		log.Debugf("[%d] items saved", len(resp.Succeeded()))
+		log.Infof("[%d] items saved", len(resp.Succeeded()))
 	}
 	return err
 }
@@ -156,6 +156,18 @@ func (x *ESItemDAL) DeleteItems(items ...*amazon.ItemDTO) error {
 		return err
 	} else {
 		log.Debugf("[%d] items deleted", len(resp.Succeeded()))
+	}
+	return err
+}
+
+func (x *ESItemDAL) ClearItems() error {
+	deleteIndexService := x.esClient.DeleteIndex(_itemIndex)
+
+	resp, err := deleteIndexService.Do(context.Background())
+	if err != nil {
+		return err
+	} else {
+		log.Debugf("items clear acknowledged: %t", resp.Acknowledged)
 	}
 	return err
 }

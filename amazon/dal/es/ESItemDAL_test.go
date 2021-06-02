@@ -37,9 +37,14 @@ func TestESItemDAL_ImportItems(t *testing.T) {
 			strs = append(strs, text)
 		}
 		items = append(items, &amazon.ItemDTO{
-			ItemNo: strings.TrimSpace(strs[2]),
-			ASIN:   strings.TrimSpace(strs[1]),
+			ItemNo: strings.TrimSpace(strs[1]),
+			ASIN:   strings.TrimSpace(strs[2]),
 		})
+	}
+
+	err = esDAL.ClearItems()
+	if u.LogError(err) {
+		return
 	}
 
 	err = esDAL.SaveItems(items...)
