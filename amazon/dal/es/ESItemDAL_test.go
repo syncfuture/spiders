@@ -14,7 +14,7 @@ import (
 
 func TestESItemDAL_ImportItems(t *testing.T) {
 	esDAL, err := NewESItemDAL(
-		elastic.SetURL("http://sa:Famous901@192.168.188.200:9200"),
+		elastic.SetURL("http://elastic:Famous901@192.168.188.200:9200"),
 	)
 	if u.LogError(err) {
 		return

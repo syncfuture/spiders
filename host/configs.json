@@ -5,7 +5,7 @@
         "DetailLevel": "warn"
     },
     "ES": {
-        "Addrs": ["http://sa:Famous901@192.168.188.200:9200"]
+        "Addrs": ["http://elastic:Famous901@192.168.188.200:9200"]
     },
     "CORS": {
         "AllowedOrigin": "*",
@@ -16,7 +16,7 @@
     "WayfairMaxConcurrent": 1,
     "Timeout": 120000,
     "ProxyStore": {
-        "Addr": "localhost:5560",
+        "Addr": "192.168.0.184:5560",
         "Provider": "webshare"
     },
     "ListenAddr": ":7000"
